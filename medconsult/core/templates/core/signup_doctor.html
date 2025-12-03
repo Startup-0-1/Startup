@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Doctor Sign Up</h2>
+<p>Create your doctor account.</p>
+
+<form method="post" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required>
+    </div>
+    <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required>
+    </div>
+    <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" name="password_confirm" required>
+    </div>
+
+    <div class="field">
+        <label>Full Name</label>
+        <input type="text" name="full_name" required>
+    </div>
+    <div class="field">
+        <label>Specialization</label>
+        <input type="text" name="specialization" required>
+    </div>
+    <div class="field">
+        <label>License Number</label>
+        <input type="text" name="license_number" required>
+    </div>
+    <div class="field">
+        <label>Years of Experience</label>
+        <input type="number" name="years_of_experience" required>
+    </div>
+    <div class="field">
+        <label>Contact Number</label>
+        <input type="text" name="contact_number" required>
+    </div>
+    <div class="field">
+        <label>Clinic Name (optional)</label>
+        <input type="text" name="clinic_name">
+    </div>
+    <div class="field">
+        <label>Clinic Address (optional)</label>
+        <textarea name="clinic_address" rows="2"></textarea>
+    </div>
+    <div class="field">
+        <label>Bio (optional)</label>
+        <textarea name="bio" rows="2"></textarea>
+    </div>
+
+    <button type="submit" class="button button-primary">Create Doctor Account</button>
+</form>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Profile</h2>
+<p>View and update your account details.</p>
+
+<h3>Basic Information</h3>
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="update_profile">
+    <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" value="{{ user_obj.email }}" required>
+    </div>
+
+    {% if patient_profile %}
+        <div class="field">
+            <label>Full Name</label>
+            <input type="text" name="full_name" value="{{ patient_profile.full_name }}">
+        </div>
+        <div class="field">
+            <label>Contact Number</label>
+            <input type="text" name="contact_number" value="{{ patient_profile.contact_number }}">
+        </div>
+        <div class="field">
+            <label>Address</label>
+            <textarea name="address" rows="2">{{ patient_profile.address }}</textarea>
+        </div>
+    {% elif doctor_profile %}
+        <div class="field">
+            <label>Full Name</label>
+            <input type="text" name="full_name" value="{{ doctor_profile.full_name }}">
+        </div>
+        <div class="field">
+            <label>Specialization</label>
+            <input type="text" name="specialization" value="{{ doctor_profile.specialization }}">
+        </div>
+        <div class="field">
+            <label>Contact Number</label>
+            <input type="text" name="contact_number" value="{{ doctor_profile.contact_number }}">
+        </div>
+        <div class="field">
+            <label>Clinic Name</label>
+            <input type="text" name="clinic_name" value="{{ doctor_profile.clinic_name }}">
+        </div>
+        <div class="field">
+            <label>Clinic Address</label>
+            <textarea name="clinic_address" rows="2">{{ doctor_profile.clinic_address }}</textarea>
+        </div>
+    {% endif %}
+
+    <button type="submit" class="button button-primary">Save Profile</button>
+</form>
+
+<hr style="margin:1.5rem 0;">
+
+<h3>Change Password</h3>
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="change_password">
+    <div class="field">
+        <label>Current Password</label>
+        <input type="password" name="current_password" required>
+    </div>
+    <div class="field">
+        <label>New Password</label>
+        <input type="password" name="new_password1" required>
+    </div>
+    <div class="field">
+        <label>Confirm New Password</label>
+        <input type="password" name="new_password2" required>
+    </div>
+    <button type="submit" class="button button-outline">Update Password</button>
+</form>
+
+<hr style="margin:1.5rem 0;">
+
+<h3>Profile Image</h3>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="upload_image">
+    <div class="field">
+        <label>Upload Image (JPG / PNG)</label>
+        <input type="file" name="profile_image" accept="image/jpeg,image/png">
+    </div>
+    <button type="submit" class="button button-outline">Upload Image</button>
+</form>
+
+{% if user_obj.profile_image %}
+    <p style="margin-top:1rem;">Current image:</p>
+    <img src="{{ user_obj.profile_image.url }}" alt="Profile image" style="width:80px;height:80px;border-radius:999px;object-fit:cover;">
+{% endif %}
+{% endblock %}

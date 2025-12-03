@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Payment Successful</h2>
+<p>Thank you! Your payment has been processed.</p>
+
+<p>
+    Amount: <strong>${{ amount_dollars }} {{ payment.currency|upper }}</strong><br>
+    Status: <strong>{{ payment.status|upper }}</strong>
+</p>
+
+
+<p style="margin-top:1rem;">
+    <a href="{% url 'welcome' %}" class="button button-outline">Back to home</a>
+</p>
+{% endblock %}

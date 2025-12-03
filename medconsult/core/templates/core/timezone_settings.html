@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Time Zone Settings</h2>
+<p>Select your preferred time zone for viewing dates & times.</p>
+
+<form method="post" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label for="id_tz">Time zone</label>
+        <select name="timezone" id="id_tz">
+            <option value="America/New_York" {% if current_tz == "America/New_York" %}selected{% endif %}>
+                United States (Eastern) – America/New_York
+            </option>
+            <option value="America/Chicago" {% if current_tz == "America/Chicago" %}selected{% endif %}>
+                United States (Central) – America/Chicago
+            </option>
+            <option value="America/Denver" {% if current_tz == "America/Denver" %}selected{% endif %}>
+                United States (Mountain) – America/Denver
+            </option>
+            <option value="America/Los_Angeles" {% if current_tz == "America/Los_Angeles" %}selected{% endif %}>
+                United States (Pacific) – America/Los_Angeles
+            </option>
+            <option value="Europe/London" {% if current_tz == "Europe/London" %}selected{% endif %}>
+                UK – Europe/London
+            </option>
+            <option value="Asia/Kolkata" {% if current_tz == "Asia/Kolkata" %}selected{% endif %}>
+                India – Asia/Kolkata
+            </option>
+        </select>
+    </div>
+
+    <button type="submit" class="button button-primary">
+        Save Time Zone
+    </button>
+</form>
+{% endblock %}

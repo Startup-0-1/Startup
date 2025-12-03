@@ -1,0 +1,79 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Patient Sign Up</h2>
+<p>Create your patient account.</p>
+
+<form method="post" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required>
+    </div>
+    <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required>
+    </div>
+    <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" name="password_confirm" required>
+    </div>
+
+    <div class="field">
+        <label>Full Name</label>
+        <input type="text" name="full_name" required>
+    </div>
+    <div class="field">
+        <label>Date of Birth (MM/DD/YYYY)</label>
+        <input type="text" name="date_of_birth" placeholder="06/27/1992" required>
+        <small style="font-size:0.8rem; color:#6b7280;">
+            You can also type 06271992 and it will auto-format.
+        </small>
+    </div>
+    <div class="field">
+        <label>Gender</label>
+        <input type="text" name="gender" required>
+    </div>
+    <div class="field">
+        <label>Contact Number</label>
+        <input type="text" name="contact_number" required>
+    </div>
+    <div class="field">
+        <label>Address</label>
+        <textarea name="address" rows="2" required></textarea>
+    </div>
+    <div class="field">
+        <label>Emergency Contact (optional)</label>
+        <input type="text" name="emergency_contact">
+    </div>
+    <div class="field">
+        <label>Insurance Provider (optional)</label>
+        <input type="text" name="insurance_provider">
+    </div>
+    <div class="field">
+        <label>Insurance Policy Number (optional)</label>
+        <input type="text" name="insurance_policy_number">
+    </div>
+
+    <button type="submit" class="button button-primary">Create Patient Account</button>
+</form>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dobInput = document.querySelector('input[name="date_of_birth"]');
+    if (!dobInput) return;
+
+    dobInput.addEventListener('blur', function () {
+        let v = dobInput.value.trim();
+        if (!v) return;
+        const digits = v.replace(/\D/g, '');
+        if (digits.length === 8) {
+            const mm = digits.slice(0, 2);
+            const dd = digits.slice(2, 4);
+            const yyyy = digits.slice(4);
+            dobInput.value = `${mm}/${dd}/${yyyy}`;
+        }
+    });
+});
+</script>
+
+{% endblock %}

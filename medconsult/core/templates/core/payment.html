@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Pay Consultation Fee</h2>
+<p>
+    You are about to pay
+    <strong>{{ amount_dollars }} {{ currency }}</strong>
+    for a consultation.
+</p>
+
+<form method="post" action="{% url 'create-checkout-session' %}" style="margin-top:1rem;">
+    {% csrf_token %}
+    <button type="submit" class="button button-primary">
+        Pay with Credit / Debit Card
+    </button>
+</form>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>My Patients & Appointments</h2>
+
+<table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+    <thead>
+        <tr style="background:#f3f4f6;">
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Date</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Time</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Patient</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Status</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Paid?</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Reason</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if appointment_blocks %}
+            {% for block in appointment_blocks %}
+                <tr valign="top">
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.start|date:"M j, Y" }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.start|time:"g:i a" }} – {{ block.end|time:"g:i a" }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {% if block.patient.patient_profile %}
+                            {{ block.patient.patient_profile.full_name }}
+                        {% else %}
+                            {{ block.patient.email }}
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.status|title }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {% if block.payment and block.payment.status == "paid" %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.reason|default:"—" }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+
+                        {# 1) Status update for the entire block #}
+                        <form method="post" action="{% url 'doctor-update-appointments' %}" style="margin-bottom:0.5rem;">
+                            {% csrf_token %}
+                            <input type="hidden" name="mode" value="set_status">
+                            {% for sid in block.slot_ids %}
+                                <input type="hidden" name="slot_ids" value="{{ sid }}">
+                            {% endfor %}
+
+                            <select name="new_status">
+                                <option value="requested" {% if block.status == "requested" %}selected{% endif %}>Requested</option>
+                                <option value="approved" {% if block.status == "approved" %}selected{% endif %}>Approved</option>
+                                <option value="rejected" {% if block.status == "rejected" %}selected{% endif %}>Rejected</option>
+                                <option value="completed" {% if block.status == "completed" %}selected{% endif %}>Completed</option>
+                                <option value="cancelled" {% if block.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                            </select>
+                            <button type="submit" class="button button-outline" style="margin-top:0.25rem;">
+                                Update
+                            </button>
+                        </form>
+
+                        {# 2) Cancel specific 30-min slots #}
+                        <form method="post" action="{% url 'doctor-update-appointments' %}" style="margin-top:0.5rem;">
+                            {% csrf_token %}
+                            <input type="hidden" name="mode" value="cancel_slots">
+
+                            <div style="font-size:0.85rem; margin-bottom:0.25rem;">
+                                Cancel specific 30-min slots:
+                            </div>
+
+                            <div style="max-height:140px; overflow:auto; border:1px solid #e5e7eb; padding:0.4rem; border-radius:0.5rem; margin-bottom:0.4rem;">
+                                {% for sr in block.slot_ranges %}
+                                    <div>
+                                        <label>
+                                            <input type="checkbox" name="slot_ids" value="{{ sr.id }}">
+                                            {{ sr.start|time:"g:i a" }} – {{ sr.end|time:"g:i a" }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <button type="submit" class="button button-outline">
+                                Cancel selected slots
+                            </button>
+                        </form>
+
+                    </td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="7" style="padding:0.75rem; text-align:center; color:#6b7280;">
+                    No appointments yet.
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}

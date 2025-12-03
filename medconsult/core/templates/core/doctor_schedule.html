@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>My Schedule</h2>
+<p>Set your availability. Patients can book 30-minute slots within these windows.</p>
+
+<form method="post" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label>Date</label>
+        <input type="date" name="date" required>
+    </div>
+    <div class="field">
+        <label>Open Time</label>
+        <input type="time" name="start_time" required>
+    </div>
+    <div class="field">
+        <label>Close Time</label>
+        <input type="time" name="end_time" required>
+    </div>
+    <button type="submit" class="button button-primary">Save for this day</button>
+</form>
+
+{% if windows %}
+    <h3 style="margin-top:2rem;">Existing availability</h3>
+    <table style="width:100%; margin-top:0.75rem; border-collapse:collapse; font-size:0.9rem;">
+        <thead>
+            <tr>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Date</th>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Open</th>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Close</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for w in windows %}
+            <tr>
+                <td style="padding:0.4rem;">{{ w.date }}</td>
+                <td style="padding:0.4rem;">{{ w.start_time }}</td>
+                <td style="padding:0.4rem;">{{ w.end_time }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p style="margin-top:1rem;">No availability set yet.</p>
+{% endif %}
+{% endblock %}

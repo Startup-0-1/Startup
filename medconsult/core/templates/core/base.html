@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MedConsult</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body.theme-light {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        body.theme-dark {
+            background: #020617;
+            color: #e5e7eb;
+        }
+        header {
+            background: #0f766e;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header .brand {
+            font-weight: 700;
+        }
+        header .nav-left a,
+        header .nav-center a {
+            color: white;
+            margin-right: 1rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        header .nav-left,
+        header .nav-center {
+            display: flex;
+            align-items: center;
+        }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.08);
+        }
+        body.theme-dark .container {
+            background: #020617;
+            color: #e5e7eb;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.5);
+        }
+        .button {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .button-primary {
+            background: #0f766e;
+            color: white;
+        }
+        .button-outline {
+            border: 1px solid #0f766e;
+            color: #0f766e;
+            background: white;
+        }
+        .field {
+            margin-bottom: 0.9rem;
+        }
+        .field label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+        }
+        body.theme-dark .field input,
+        body.theme-dark .field select,
+        body.theme-dark .field textarea {
+            background: #020617;
+            color: #e5e7eb;
+            border-color: #4b5563;
+        }
+        .messages {
+            margin-bottom: 1rem;
+        }
+        .messages .msg {
+            padding: 0.6rem 0.8rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .messages .msg.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .messages .msg.error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .dashboard-card {
+            padding: 1.2rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+        }
+        body.theme-dark .dashboard-card {
+            background: #020617;
+            border-color: #4b5563;
+        }
+        .dashboard-card h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+        .dashboard-card p {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+        body.theme-dark .dashboard-card p {
+            color: #d1d5db;
+        }
+
+        /* Avatar + dropdown */
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .avatar-wrapper {
+            position: relative;
+        }
+        .avatar-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+        }
+        .avatar-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .avatar-initial {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .avatar-dropdown {
+            position: absolute;
+            right: 0;
+            margin-top: 0.4rem;
+            min-width: 200px;
+            background: white;
+            color: #111827;   /* 🔥 FIX: dark text on white background */
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(15,23,42,0.15);
+            padding: 0.5rem 0;
+            display: none;
+            z-index: 50;
+        }
+        body.theme-dark .avatar-dropdown {
+            background: #020617;
+            color: #e5e7eb;
+        }
+        .avatar-dropdown a,
+        .avatar-dropdown button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+        }
+        .avatar-dropdown a:hover,
+        .avatar-dropdown button:hover {
+            background: #f3f4f6;
+        }
+        body.theme-dark .avatar-dropdown a:hover,
+        body.theme-dark .avatar-dropdown button:hover {
+            background: #111827;
+        }
+        .avatar-dropdown .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #9ca3af;
+            padding: 0.25rem 1rem;
+        }
+        body.theme-dark .avatar-dropdown .section-label {
+            color: #6b7280;
+        }
+        .avatar-dropdown hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 0.25rem 0;
+        }
+        body.theme-dark .avatar-dropdown hr {
+            border-color: #4b5563;
+        }
+    </style>
+</head>
+<body class="{% if request.user.is_authenticated and request.user.theme_preference == 'dark' %}theme-dark{% else %}theme-light{% endif %}">
+<header>
+    <div class="nav-left">
+        <div class="brand">MedConsult</div>
+        &nbsp;&nbsp;
+        <a href="{% url 'welcome' %}">Home</a>
+        {% if request.user.is_authenticated %}
+            {% if request.user.role == "patient" %}
+                <a href="{% url 'patient-appointments' %}">My Appointments</a>
+                <a href="{% url 'payment-page' %}">Payments</a>
+            {% elif request.user.role == "doctor" %}
+                <a href="{% url 'doctor-appointments' %}">My Patients</a>
+                <a href="{% url 'doctor-schedule' %}">My Schedule</a>
+            {% elif request.user.role == "admin" %}
+                <a href="/admin/">Admin</a>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="nav-right">
+        {% if request.user.is_authenticated %}
+            <div class="avatar-wrapper" id="avatar-wrapper">
+                <div class="avatar-circle" id="avatar-toggle">
+                    {% if request.user.profile_image %}
+                        <img src="{{ request.user.profile_image.url }}" alt="Profile">
+                    {% else %}
+                        <span class="avatar-initial">
+                            {{ request.user.email|first|upper }}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="avatar-dropdown" id="avatar-dropdown">
+                    <div class="section-label">
+                        {{ request.user.email }}
+                    </div>
+                    <a href="{% url 'profile' %}">Profile</a>
+                    <a href="{% url 'documents' %}">Documents</a>
+                    <a href="{% url 'prescriptions' %}">Prescriptions</a>
+                    <a href="{% url 'settings-view' %}">Settings</a>
+                    <hr>
+                    <a href="{% url 'logout-view' %}">Logout</a>
+                </div>
+            </div>
+        {% else %}
+            <a href="{% url 'login-page' %}">Login</a>
+            <a href="{% url 'signup-patient-page' %}">Patient Signup</a>
+            <a href="{% url 'signup-doctor-page' %}">Doctor Signup</a>
+        {% endif %}
+    </div>
+</header>
+
+<div class="container">
+    <div class="messages">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="msg {% if message.tags %}{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const avatarToggle = document.getElementById("avatar-toggle");
+    const dropdown = document.getElementById("avatar-dropdown");
+    const wrapper = document.getElementById("avatar-wrapper");
+
+    if (avatarToggle && dropdown && wrapper) {
+        avatarToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const isOpen = dropdown.style.display === "block";
+            dropdown.style.display = isOpen ? "none" : "block";
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!wrapper.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Log In</h2>
+<p>Use your email and password to sign in.</p>
+
+<form method="post" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label for="id_email">Email</label>
+        <input type="email" name="email" id="id_email" required>
+    </div>
+    <div class="field">
+        <label for="id_password">Password</label>
+        <input type="password" name="password" id="id_password" required>
+    </div>
+    <button type="submit" class="button button-primary">Log In</button>
+</form>
+
+<p style="margin-top:1rem; font-size:0.9rem;">
+    New here? Sign up as
+    <a href="{% url 'signup-patient-page' %}">Patient</a> or
+    <a href="{% url 'signup-doctor-page' %}">Doctor</a>.
+</p>
+{% endblock %}

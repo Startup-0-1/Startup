@@ -1,0 +1,58 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>My Appointments</h2>
+
+<table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+    <thead>
+        <tr style="background:#f3f4f6;">
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Date</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Time</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Doctor</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Status</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Paid?</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Reason</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if appointment_blocks %}
+            {% for block in appointment_blocks %}
+                <tr>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.start|date:"M j, Y" }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.start|time:"g:i a" }} – {{ block.end|time:"g:i a" }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {% if block.doctor.doctor_profile %}
+                            {{ block.doctor.doctor_profile.full_name }}
+                        {% else %}
+                            {{ block.doctor.email }}
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.status|title }}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {% if block.payment and block.payment.status == "paid" %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {{ block.reason|default:"—" }}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="6" style="padding:0.75rem; text-align:center; color:#6b7280;">
+                    No appointments yet.
+                </td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+{% endblock %}

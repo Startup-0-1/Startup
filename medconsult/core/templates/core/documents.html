@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Documents</h2>
+<p>Upload and access your documents.</p>
+
+<form method="post" enctype="multipart/form-data" style="margin-top:1rem;">
+    {% csrf_token %}
+    <div class="field">
+        <label>File</label>
+        <input type="file" name="file" required>
+    </div>
+    <div class="field">
+        <label>Display Name (optional)</label>
+        <input type="text" name="file_name">
+    </div>
+    <div class="field">
+        <label>Document Type</label>
+        <select name="document_type">
+            <option value="other">Other</option>
+            <option value="lab_report">Lab Report</option>
+            <option value="id_proof">ID Proof</option>
+            <option value="scan">Scan</option>
+            <option value="prescription">Prescription</option>
+        </select>
+    </div>
+    <button type="submit" class="button button-primary">Upload</button>
+</form>
+
+{% if documents %}
+    <h3 style="margin-top:2rem;">Your Documents</h3>
+    <table style="width:100%; margin-top:0.75rem; border-collapse:collapse; font-size:0.9rem;">
+        <thead>
+            <tr>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Name</th>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Type</th>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Uploaded</th>
+                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Download</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for doc in documents %}
+            <tr>
+                <td style="padding:0.4rem;">{{ doc.file_name }}</td>
+                <td style="padding:0.4rem;">{{ doc.get_document_type_display }}</td>
+                <td style="padding:0.4rem;">{{ doc.created_at }}</td>
+                <td style="padding:0.4rem;">
+                    <a href="{{ doc.file.url }}" class="button button-outline" style="padding:0.2rem 0.5rem; font-size:0.8rem;">
+                        Download
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p style="margin-top:1rem;">No documents yet.</p>
+{% endif %}
+{% endblock %}
