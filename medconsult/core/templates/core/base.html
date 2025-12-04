@@ -181,7 +181,7 @@
             margin-top: 0.4rem;
             min-width: 200px;
             background: white;
-            color: #111827;   /* 🔥 FIX: dark text on white background */
+            color: #111827;   /* dark text on white background */
             border-radius: 0.75rem;
             box-shadow: 0 10px 25px rgba(15,23,42,0.15);
             padding: 0.5rem 0;
@@ -230,6 +230,37 @@
         }
         body.theme-dark .avatar-dropdown hr {
             border-color: #4b5563;
+        }
+
+        /* ===============================
+           GLOBAL TABLE THEME FIX
+           =============================== */
+        table,
+        table th,
+        table td {
+            background-color: #ffffff !important;
+            color: #111827 !important;
+            border-color: #e5e7eb !important;
+        }
+
+        body.theme-dark table,
+        body.theme-dark table th,
+        body.theme-dark table td {
+            background-color: #1f2937 !important;
+            color: #f9fafb !important;
+            border-color: #374151 !important;
+        }
+
+        table th {
+            font-weight: 600;
+        }
+
+        table tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        body.theme-dark table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.05);
         }
     </style>
 </head>

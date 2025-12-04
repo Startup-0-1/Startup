@@ -812,7 +812,7 @@ def profile_view(request):
     """
     User profile:
     - View core info
-    - Update email
+    - Update email + profile details
     - Change password
     - Upload profile image (jpg/png)
     """
@@ -826,31 +826,49 @@ def profile_view(request):
         # --- Update basic info / email ---
         if action == "update_profile":
             new_email = request.POST.get("email", "").strip()
-            if not new_email:
-                messages.error(request, "Email cannot be empty.")
-            else:
-                # ensure uniqueness
-                try:
-                    if new_email != user.email:
-                        user.email = new_email
+            if new_email and new_email != user.email:
+                # ensure unique email
+                if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                    messages.error(request, "That email address is already in use.")
+                else:
+                    user.email = new_email
                     user.save()
-                    messages.success(request, "Profile updated.")
-                except IntegrityError:
-                    messages.error(request, "That email is already in use.")
+                    messages.success(request, "Email updated.")
 
-            # update some profile fields depending on role
+            # PATIENT FIELDS
             if patient_profile:
-                patient_profile.full_name = request.POST.get("full_name", patient_profile.full_name)
+                patient_profile.full_name = request.POST.get(
+                    "full_name", patient_profile.full_name
+                )
+                patient_profile.date_of_birth = request.POST.get(
+                    "date_of_birth", patient_profile.date_of_birth
+                )
+                patient_profile.gender = request.POST.get(
+                    "gender", patient_profile.gender
+                )
                 patient_profile.contact_number = request.POST.get(
                     "contact_number", patient_profile.contact_number
                 )
                 patient_profile.address = request.POST.get(
                     "address", patient_profile.address
                 )
+                patient_profile.emergency_contact = request.POST.get(
+                    "emergency_contact", patient_profile.emergency_contact
+                )
+                patient_profile.insurance_provider = request.POST.get(
+                    "insurance_provider", patient_profile.insurance_provider
+                )
+                patient_profile.insurance_policy_number = request.POST.get(
+                    "insurance_policy_number",
+                    patient_profile.insurance_policy_number,
+                )
                 patient_profile.save()
 
+            # DOCTOR FIELDS
             if doctor_profile:
-                doctor_profile.full_name = request.POST.get("full_name", doctor_profile.full_name)
+                doctor_profile.full_name = request.POST.get(
+                    "full_name", doctor_profile.full_name
+                )
                 doctor_profile.specialization = request.POST.get(
                     "specialization", doctor_profile.specialization
                 )
@@ -865,6 +883,8 @@ def profile_view(request):
                 )
                 doctor_profile.save()
 
+            messages.success(request, "Profile details updated.")
+
         # --- Change password ---
         elif action == "change_password":
             current_password = request.POST.get("current_password")
@@ -878,20 +898,18 @@ def profile_view(request):
             else:
                 user.set_password(new_password1)
                 user.save()
-                # keep user logged in
                 update_session_auth_hash(request, user)
                 messages.success(request, "Password changed successfully.")
 
         # --- Upload profile image ---
         elif action == "upload_image":
-            file = request.FILES.get("profile_image")
-            if file:
-                # optional: you can validate extension here
-                user.profile_image = file
+            img = request.FILES.get("profile_image")
+            if not img:
+                messages.error(request, "Please choose an image to upload.")
+            else:
+                user.profile_image = img
                 user.save()
                 messages.success(request, "Profile image updated.")
-            else:
-                messages.error(request, "No image selected.")
 
         return redirect("profile")
 
@@ -901,6 +919,7 @@ def profile_view(request):
         "doctor_profile": doctor_profile,
     }
     return render(request, "core/profile.html", context)
+
 
 # ===========================
 # DOCUMENT VIEWS
@@ -1007,46 +1026,146 @@ def doctor_schedule_view(request):
     - For each day, doctor sets open/close time.
     - Creates/updates DoctorAvailability windows.
     - Patients see 30-min slots generated from these windows.
+    - Doctor can delete individual future, unbooked 30-min slots.
     """
     doctor = request.user
 
-    if request.method == "POST":
-        date_str = request.POST.get("date")
-        start_str = request.POST.get("start_time")
-        end_str = request.POST.get("end_time")
-
-        if not (date_str and start_str and end_str):
-            messages.error(request, "Please select date, start time, and end time.")
-            return redirect("doctor-schedule")
-
+    # Date selected for viewing slots
+    date_param = request.GET.get("date") or request.POST.get("selected_date")
+    selected_date = None
+    if date_param:
         try:
-            d = datetime.strptime(date_str, "%Y-%m-%d").date()
-            start_t = datetime.strptime(start_str, "%H:%M").time()
-            end_t = datetime.strptime(end_str, "%H:%M").time()
+            selected_date = datetime.strptime(date_param, "%Y-%m-%d").date()
         except ValueError:
-            messages.error(request, "Invalid date or time.")
-            return redirect("doctor-schedule")
+            selected_date = None
 
-        if start_t >= end_t:
-            messages.error(request, "Start time must be before end time.")
-            return redirect("doctor-schedule")
+    if request.method == "POST":
+        action = request.POST.get("action", "save_window")
 
-        # create or update availability for that day
-        obj, created = DoctorAvailability.objects.update_or_create(
-            doctor=doctor,
-            date=d,
-            defaults={
-                "start_time": start_t,
-                "end_time": end_t,
-            },
-        )
-        if created:
-            messages.success(request, f"Availability created for {d}.")
+        # --- DELETE A SINGLE 30-MIN SLOT ---
+        if action == "delete_slot":
+            slot_start_str = request.POST.get("slot_start")
+            if not slot_start_str:
+                messages.error(request, "Missing slot to delete.")
+                return redirect(request.path + (f"?date={date_param}" if date_param else ""))
+
+            try:
+                # format: 2025-12-04T14:30
+                naive_slot_start = datetime.strptime(slot_start_str, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                messages.error(request, "Invalid slot timestamp.")
+                return redirect(request.path + (f"?date={date_param}" if date_param else ""))
+
+            tz = timezone.get_current_timezone()
+            slot_start = timezone.make_aware(naive_slot_start, tz)
+            slot_end = slot_start + SLOT_DELTA
+
+            # 1) Can't delete past slots
+            if slot_start <= timezone.now():
+                messages.error(request, "Cannot delete a past slot.")
+                return redirect(request.path + f"?date={slot_start.date().isoformat()}")
+
+            # 2) Can't delete booked slots
+            if Appointment.objects.filter(
+                doctor=doctor,
+                scheduled_for=slot_start,
+            ).exclude(status="cancelled").exists():
+                messages.error(request, "Cannot delete a slot that already has a booking.")
+                return redirect(request.path + f"?date={slot_start.date().isoformat()}")
+
+            slot_date = slot_start.date()
+            slot_time_start = slot_start.time()
+            slot_time_end = slot_end.time()
+
+            try:
+                window = DoctorAvailability.objects.get(
+                    doctor=doctor,
+                    date=slot_date,
+                    start_time__lte=slot_time_start,
+                    end_time__gte=slot_time_end,
+                )
+            except DoctorAvailability.DoesNotExist:
+                messages.error(request, "No matching availability window for this slot.")
+                return redirect(request.path + f"?date={slot_date.isoformat()}")
+
+            s = window.start_time
+            e = window.end_time
+
+            # 4 cases: remove [slot_time_start, slot_time_end) from [s, e)
+            if s == slot_time_start and e == slot_time_end:
+                # entire window is just this slot
+                window.delete()
+            elif s == slot_time_start and slot_time_end < e:
+                # removing first slot; move start forward
+                window.start_time = slot_time_end
+                window.save()
+            elif s < slot_time_start and slot_time_end == e:
+                # removing last slot; move end backward
+                window.end_time = slot_time_start
+                window.save()
+            else:
+                # splitting the window into two
+                # [s, slot_time_start) and [slot_time_end, e)
+                DoctorAvailability.objects.create(
+                    doctor=doctor,
+                    date=slot_date,
+                    start_time=slot_time_end,
+                    end_time=e,
+                )
+                window.end_time = slot_time_start
+                window.save()
+
+            messages.success(request, "Slot removed from your availability.")
+            return redirect(request.path + f"?date={slot_date.isoformat()}")
+
+        # --- CREATE / UPDATE DAILY WINDOW ---
         else:
-            messages.success(request, f"Availability updated for {d}.")
+            date_str = request.POST.get("date")
+            start_str = request.POST.get("start_time")
+            end_str = request.POST.get("end_time")
 
-        return redirect("doctor-schedule")
+            if not (date_str and start_str and end_str):
+                messages.error(request, "Please select date, start time, and end time.")
+                return redirect("doctor-schedule")
 
-    # list of availability windows for this doctor
+            try:
+                d = datetime.strptime(date_str, "%Y-%m-%d").date()
+                start_t = datetime.strptime(start_str, "%H:%M").time()
+                end_t = datetime.strptime(end_str, "%H:%M").time()
+            except ValueError:
+                messages.error(request, "Invalid date or time.")
+                return redirect("doctor-schedule")
+
+            if start_t >= end_t:
+                messages.error(request, "Start time must be before end time.")
+                return redirect("doctor-schedule")
+
+            obj, created = DoctorAvailability.objects.update_or_create(
+                doctor=doctor,
+                date=d,
+                defaults={
+                    "start_time": start_t,
+                    "end_time": end_t,
+                },
+            )
+            if created:
+                messages.success(request, f"Availability created for {d}.")
+            else:
+                messages.success(request, f"Availability updated for {d}.")
+
+            # After updating, show that day's slots immediately
+            return redirect(request.path + f"?date={d.isoformat()}")
+
+    # For GET (or after POST redirect):
     windows = DoctorAvailability.objects.filter(doctor=doctor).order_by("date", "start_time")
-    return render(request, "core/doctor_schedule.html", {"windows": windows})
+
+    available_slots = []
+    if selected_date:
+        available_slots = get_available_slots_for_doctor(doctor, selected_date)
+
+    context = {
+        "windows": windows,
+        "selected_date": selected_date,
+        "available_slots": available_slots,
+    }
+    return render(request, "core/doctor_schedule.html", context)

@@ -6,6 +6,7 @@
 
 <form method="post" style="margin-top:1rem;">
     {% csrf_token %}
+
     <div class="field">
         <label>Theme</label>
         <select name="theme">
@@ -16,14 +17,16 @@
 
     <div class="field">
         <label>
-            <input type="checkbox" name="location_tracking" {% if location_tracking_enabled %}checked{% endif %}>
-            Enable location tracking (for future nearest-hospital features)
+            <input type="checkbox" name="location_tracking"
+                   {% if location_tracking_enabled %}checked{% endif %}>
+            Enable location-based features (future use)
         </label>
     </div>
 
     <div class="field">
-        <label for="id_tz">Time zone</label>
-        <select name="timezone" id="id_tz">
+        <label>Time Zone</label>
+        <select name="timezone">
+            <option value="">-- Select Time Zone --</option>
             <option value="America/New_York" {% if current_tz == "America/New_York" %}selected{% endif %}>
                 United States (Eastern) – America/New_York
             </option>

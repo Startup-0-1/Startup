@@ -8,6 +8,7 @@
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="update_profile">
+
     <div class="field">
         <label>Email</label>
         <input type="email" name="email" value="{{ user_obj.email }}" required>
@@ -18,31 +19,64 @@
             <label>Full Name</label>
             <input type="text" name="full_name" value="{{ patient_profile.full_name }}">
         </div>
+
+        <div class="field">
+            <label>Date of Birth</label>
+            <input type="text" name="date_of_birth" value="{{ patient_profile.date_of_birth }}" placeholder="YYYY-MM-DD or as stored">
+        </div>
+
+        <div class="field">
+            <label>Gender</label>
+            <input type="text" name="gender" value="{{ patient_profile.gender }}">
+        </div>
+
         <div class="field">
             <label>Contact Number</label>
             <input type="text" name="contact_number" value="{{ patient_profile.contact_number }}">
         </div>
+
         <div class="field">
             <label>Address</label>
             <textarea name="address" rows="2">{{ patient_profile.address }}</textarea>
         </div>
-    {% elif doctor_profile %}
+
+        <div class="field">
+            <label>Emergency Contact</label>
+            <input type="text" name="emergency_contact" value="{{ patient_profile.emergency_contact }}">
+        </div>
+
+        <div class="field">
+            <label>Insurance Provider</label>
+            <input type="text" name="insurance_provider" value="{{ patient_profile.insurance_provider }}">
+        </div>
+
+        <div class="field">
+            <label>Insurance Policy Number</label>
+            <input type="text" name="insurance_policy_number" value="{{ patient_profile.insurance_policy_number }}">
+        </div>
+    {% endif %}
+
+    {% if doctor_profile %}
         <div class="field">
             <label>Full Name</label>
             <input type="text" name="full_name" value="{{ doctor_profile.full_name }}">
         </div>
+
         <div class="field">
             <label>Specialization</label>
             <input type="text" name="specialization" value="{{ doctor_profile.specialization }}">
         </div>
+
         <div class="field">
             <label>Contact Number</label>
             <input type="text" name="contact_number" value="{{ doctor_profile.contact_number }}">
         </div>
+
         <div class="field">
             <label>Clinic Name</label>
             <input type="text" name="clinic_name" value="{{ doctor_profile.clinic_name }}">
         </div>
+
         <div class="field">
             <label>Clinic Address</label>
             <textarea name="clinic_address" rows="2">{{ doctor_profile.clinic_address }}</textarea>
@@ -88,6 +122,7 @@
 
 {% if user_obj.profile_image %}
     <p style="margin-top:1rem;">Current image:</p>
-    <img src="{{ user_obj.profile_image.url }}" alt="Profile image" style="width:80px;height:80px;border-radius:999px;object-fit:cover;">
+    <img src="{{ user_obj.profile_image.url }}" alt="Profile image"
+         style="width:80px;height:80px;border-radius:999px;object-fit:cover;">
 {% endif %}
 {% endblock %}

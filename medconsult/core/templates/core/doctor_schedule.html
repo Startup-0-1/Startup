@@ -4,32 +4,98 @@
 <h2>My Schedule</h2>
 <p>Set your availability. Patients can book 30-minute slots within these windows.</p>
 
+{# 1) Pick a date to inspect existing 30-min slots #}
+<form method="get" style="margin-top:1rem; margin-bottom:1rem;">
+    <div class="field">
+        <label>Check schedule for date</label>
+        <input type="date" name="date"
+               value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}">
+    </div>
+    <button type="submit" class="button button-outline">View Slots for This Day</button>
+</form>
+
+<hr style="margin:1.5rem 0;">
+
+{# 2) Create / update availability window for a date #}
 <form method="post" style="margin-top:1rem;">
     {% csrf_token %}
+    <input type="hidden" name="action" value="save_window">
+
     <div class="field">
         <label>Date</label>
-        <input type="date" name="date" required>
+        <input type="date" name="date"
+               value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}"
+               required>
     </div>
+
     <div class="field">
         <label>Open Time</label>
         <input type="time" name="start_time" required>
+        {# Browser will show numeric hours/mins with AM/PM or 24h depending on locale #}
     </div>
+
     <div class="field">
         <label>Close Time</label>
         <input type="time" name="end_time" required>
     </div>
-    <button type="submit" class="button button-primary">Save for this day</button>
+
+    <button type="submit" class="button button-primary">Save Availability</button>
 </form>
 
-{% if windows %}
-    <h3 style="margin-top:2rem;">Existing availability</h3>
-    <table style="width:100%; margin-top:0.75rem; border-collapse:collapse; font-size:0.9rem;">
-        <thead>
+<hr style="margin:1.5rem 0;">
+
+{# 3) For the selected date, show all future 30-min free slots with delete buttons #}
+{% if selected_date %}
+    <h3>30-minute slots on {{ selected_date }}</h3>
+
+    {% if available_slots %}
+        <table style="width:100%; border-collapse:collapse; margin-top:0.5rem;">
+            <thead>
             <tr>
-                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Date</th>
-                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Open</th>
-                <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:0.4rem;">Close</th>
+                <th style="text-align:left; padding:0.4rem;">Slot</th>
+                <th style="text-align:left; padding:0.4rem;">Actions</th>
             </tr>
+            </thead>
+            <tbody>
+            {% for slot in available_slots %}
+                <tr>
+                    <td style="padding:0.4rem;">
+                        {{ slot.0|date:"H:i" }} – {{ slot.1|date:"H:i" }}
+                    </td>
+                    <td style="padding:0.4rem;">
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_slot">
+                            <input type="hidden" name="selected_date"
+                                   value="{{ selected_date|date:'Y-m-d' }}">
+                            <input type="hidden" name="slot_start"
+                                   value="{{ slot.0|date:'Y-m-d\\TH:i' }}">
+                            <button type="submit" class="button button-outline">
+                                Delete Slot
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No future free 30-minute slots for this date.</p>
+    {% endif %}
+{% endif %}
+
+<hr style="margin:1.5rem 0;">
+
+{# 4) List all availability windows overall so the doctor sees the big picture #}
+<h3>All Availability Windows</h3>
+{% if windows %}
+    <table style="width:100%; border-collapse:collapse; margin-top:0.5rem;">
+        <thead>
+        <tr>
+            <th style="text-align:left; padding:0.4rem;">Date</th>
+            <th style="text-align:left; padding:0.4rem;">Open</th>
+            <th style="text-align:left; padding:0.4rem;">Close</th>
+        </tr>
         </thead>
         <tbody>
         {% for w in windows %}
