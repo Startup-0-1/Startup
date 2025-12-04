@@ -1,4 +1,4 @@
-#!/home/oj/Startup/startup_venv/bin/python3
+#!/home/ojaswi/Startup/startup_venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys
