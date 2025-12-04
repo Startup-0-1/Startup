@@ -58,7 +58,7 @@ MedConsult is designed as an end-to-end virtual healthcare experience — scalab
 ---
 
 # 🧭 Product Roadmap
-A detailed roadmap is available in [`steps.md`](./steps.md), including upcoming features such as:
+A detailed roadmap is available in [`steps.md`](./medconsult/steps.md), including upcoming features such as:
 - PDF prescription generator  
 - Medical history timeline  
 - Doctor ratings & reviews  
