@@ -1,296 +1,227 @@
-Ohhh you’re entering the fun part now — **feature ideation for a real medical consultancy platform**. And since you’ve already built authentication, profiles, document uploads, and payments, you now have the foundation for a **legit SaaS-level architecture**.
+# 🚀 MedConsult — Product Development Roadmap  
+*A telemedicine platform in active development.*
 
-Here’s a strategic breakdown:
-**Core → Growth → Premium → Compliance-Level**.
-
-I’ll give you features you can *actually* implement in your current Django structure without blowing up the project.
+This document outlines the full development plan for MedConsult, including what is already implemented and what needs to be completed in each phase. It serves as the canonical technical roadmap for the engineering team.
 
 ---
 
-# 🔥 **LEVEL 1 — CORE FEATURES (Build These Next)**
+# ✅ Phase 1 — Core MVP (Already Implemented)
 
-These turn your MVP into a functional medical platform.
+## 1. User System (Complete)
+- Custom `User` model with roles: **patient**, **doctor**, **admin**.
+- Separate `PatientProfile` and `DoctorProfile` models.
+- Sign-up, login, logout (HTML + REST API).
+- Basic profile editing (name, contact info, profile image).
+- Settings page (partial).
 
----
+## 2. Appointment Scheduling System (Complete)
+- `DoctorAvailability` model to define available time windows.
+- Automatic 30-minute slot generation.
+- Patient appointment creation.
+- Doctor approval / rejection workflow.
+- Grouped time-block display for both doctors and patients.
+- Appointment statuses: requested, approved, rejected, completed, cancelled.
 
-## ✅ 1. **Booking System / Appointment Scheduler**
+## 3. Basic Stripe Payments (Complete)
+- One-time Stripe Checkout session.
+- Payment model tracking amount, currency, Stripe session ID, and status.
+- Payment success/cancel views.
 
-Patients can:
+## 4. Document Upload System (Complete)
+- Patients and doctors can upload documents.
+- Categorized file uploads (lab report, prescription, ID, etc.).
+- Document listing page per user.
 
-* View available time slots for different doctors
-* Request appointment
-* Pay consultation fee → appointment confirmed
-* Get reminders via email
-
-Doctors can:
-
-* Approve/reject appointments
-* Set available hours
-* Block off dates
-
-Admins can:
-
-* View all appointments
-* Manually override bookings
-
-**Tech stack required:**
-Appointments model, availability model, calendar UI.
-
----
-
-## ✅ 2. **Chat Messaging (Doctor ↔ Patient)**
-
-Simple, like WhatsApp mini-version:
-
-* Patient sends message
-* Doctor replies
-* Auto-archive once appointment ends
-* Upload documents inside chat
-
-**Bonus:** build async using Django Channels for real-time.
+## 5. Prescription Storage (Basic Version)
+- Prescription model + file upload path.
+- Prescription listing for doctor, patient, and admin.
 
 ---
 
-## ✅ 3. **Video Consultation (Telemedicine)**
+# 🔥 Phase 2 — MVP Upgrade (High Priority Features)
 
-Use:
+## 6. Payment → Appointment Integration
+- Tie Payment model to Appointment via foreign key.
+- New appointment status: **Pending Payment**.
+- Auto-confirm appointment only after successful Stripe payment.
+- Display payment status in appointment detail.
 
-* **Twilio Video**
-* or **Vonage (formerly OpenTok)**
-* or **Zoom SDK**
+## 7. Email Notifications
+Implement emails for:
+- account creation  
+- appointment booking  
+- doctor approval/rejection  
+- payment success  
+- document upload  
+- prescription added  
 
-Your workflow:
+SMTP or SendGrid recommended.
 
-* Appointment scheduled
-* Payment done
-* Auto-generate a video-call link
-* Open in browser, no app needed
+## 8. Appointment Rescheduling
+- Patient requests a new timeslot.
+- Doctor approves/denies reschedule request.
+- Old appointment auto-cancelled or updated.
 
-This is the killer feature for medical SaaS.
-
----
-
-## ✅ 4. **Prescription Generator (PDF)**
-
-Doctors can:
-
-* Fill form
-* Sign electronically
-* Generate PDF
-* Auto-send to patient
-* Store in database
-
-You already have a Prescription model — let's turn it into a PDF.
-
-Use `reportlab` or `weasyprint`.
+## 9. Timezone Support
+- User-selectable timezone in settings.
+- Normalize all datetime objects.
+- Convert appointments to user's timezone.
 
 ---
 
-## ✅ 5. **Medical History Timeline**
+# ⚡ Phase 3 — Communication Layer (Core Telemedicine Experience)
 
-For each patient:
+## 10. Real-Time Chat (Doctor ↔ Patient)
+- `Message` model (sender, receiver, content, timestamp).
+- Chat list view + chat detail UI.
+- Real-time updates using Django Channels or polling.
+- Message read receipts (optional).
 
-* All documents
-* All prescriptions
-* All payments
-* All consultations
-* All messages
-  Displayed like a clean timeline.
-
-Doctors love this.
-
----
-
-# 🚀 **LEVEL 2 — GROWTH FEATURES (Unlocks $$$)**
+## 11. Video Consultation Integration
+- Generate secure call links (Zoom / Jitsi / Twilio).
+- Attach meeting link to approved appointment.
+- Add “Join Call” button for doctor and patient.
+- Call duration tracking (optional).
 
 ---
 
-## 🔐 6. **Two-Factor Authentication (2FA)**
+# 🩺 Phase 4 — Medical & Compliance Features
 
-For doctors & admins especially:
+## 12. Prescription PDF Generator
+- Doctor fills structured form.
+- Auto-generated PDF (via ReportLab or WeasyPrint).
+- Stored under `prescriptions/<id>.pdf`.
+- “Download Prescription” button.
 
-* SMS via Twilio
-* Email OTP
-* Authenticator App (Google Auth)
+## 13. Unified Medical History Timeline
+Combine into a single chronological stream:
+- appointments  
+- documents  
+- prescriptions  
+- payments  
 
-Makes your platform trustworthy.
+Displayed in a timeline UI with filtering.
 
----
+## 14. Two-Factor Authentication (2FA)
+- Email or app-based OTP.
+- Backup codes for emergency login.
 
-## 📧 7. **Email Notifications / Alerts**
+## 15. Audit Logging
+Track sensitive actions:
+- logins  
+- profile edits  
+- appointment changes  
+- prescription updates  
+- document uploads  
 
-Automate:
+Stored in an `AuditLog` model.
 
-* “Appointment booked”
-* “Prescription updated”
-* “Document uploaded”
-* “Payment received”
-* “Doctor replied to your message”
-
-Use: **Django Email + SMTP** or SendGrid.
-
----
-
-## 💊 8. **Medicine Reminders**
-
-Send patients notifications for prescribed meds.
-
-Even more premium:
-Let patients set their own reminders.
-
----
-
-## 📄 9. **Admin Dashboard (Custom UI)**
-
-Analytics for:
-
-* Number of users
-* Revenue
-* Active doctors
-* Appointments
-* Prescriptions
-
-Use a JS chart library:
-
-* Chart.js
-* ApexCharts
-* Recharts
-
-This is appealing to investors.
+## 16. Encrypted Document Storage
+- Switch to encrypted storage backend or encrypted S3 bucket.
+- Signed expiration URLs for file access.
 
 ---
 
-# 🎩 **LEVEL 3 — PREMIUM FEATURES (Subscription / Business Model)**
+# 📈 Phase 5 — Growth Features (Competitive Differentiators)
+
+## 17. Subscription Plans
+- Monthly/annual telehealth subscription tiers.
+- Stripe Billing integration (recurring payments).
+- Subscription status controls access to consultation features.
+
+## 18. Doctor Ratings & Reviews
+- Rating model (stars + comments).
+- Patients review doctor after completed appointment.
+- Doctor profile displays average rating.
+
+## 19. Automated Reminders
+- Email or SMS reminders for:
+  - upcoming appointments  
+  - prescription refills  
+  - medication schedules  
+- Cron/Celery scheduler required.
+
+## 20. Admin Analytics Dashboard
+- Appointment volume charts.
+- Revenue metrics.
+- Doctor performance analytics.
+- User activity insights.
 
 ---
 
-## 💳 10. **Subscription Plans**
+# 🤖 Phase 6 — AI Extensions (Optional but Highly Valuable)
 
-Examples:
+## 21. AI Symptom Checker
+- Patient enters symptoms → LLM or classifier predicts possible conditions.
+- Provide recommended next steps (not medical advice).
 
-* **Basic** → chat only
-* **Consultation plan** → 3 calls/month
-* **Premium** → unlimited messaging + free video calls
+## 22. AI Document Intelligence
+- Extract text from uploads (OCR).
+- Auto-summarize lab results or reports.
+- Highlight critical values or trends.
 
-Use Stripe Billing:
-
-* Automatic renewals
-* Cancel anytime
-* Usage-based billing
-
-Money printer.
-
----
-
-## 🧑‍⚕️ 11. **Doctor Ratings & Reviews**
-
-After appointment:
-
-* Patient leaves rating + comment
-* Helps quality control
-* Encourages engagement
+## 23. AI Assistant for Doctors
+- Auto-generate draft prescriptions.
+- Auto-generate visit summaries.
+- Suggest follow-up steps based on chat/notes.
 
 ---
 
-## 🔍 12. **AI Symptom Checker (Optional, Later)**
+# 🏛️ Phase 7 — Interoperability & Regulatory Alignment
 
-Use a small LLM or API:
+## 24. FHIR-Style Health Records API
+Expose structured health data via:
+- Patients endpoint  
+- Prescriptions endpoint  
+- Appointments endpoint  
+- Document metadata endpoint  
 
-* Strip PHI
-* Ask symptom questions
-* Give “possible causes”
-* Suggest whether they need doctor / emergency
-
-This is hot right now.
-
----
-
-# 🛡️ **LEVEL 4 — COMPLIANCE / SECURITY (For Future Investors)**
+Enable interoperability with clinics and EHR systems.
 
 ---
 
-## 🔐 13. **Encrypted Document Storage**
+# 🧱 Phase 8 — Engineering & Infrastructure
 
-Store files encrypted:
+## 25. Dockerization
+- Dockerfile for Django app.
+- docker-compose (Django + Redis + Postgres + Nginx).
+- Local and production parity.
 
-* AES-256
-* Secure S3 bucket (HIPAA mode)
-* Signed URL with expiration
+## 26. Production Deployment
+- Deploy to AWS / DigitalOcean / Render.
+- Setup HTTPS (Let’s Encrypt).
+- Optimize static/media file pipeline.
 
-Doctors/patients can download securely.
-
----
-
-## 🗂️ 14. **Audit Logs**
-
-Track EVERYTHING:
-
-* Who downloaded what
-* Who viewed which file
-* Who updated which prescription
-
-Medical systems require this by law.
-
-(Django admin logs are not enough — we’ll build custom logs.)
+## 27. Security & Performance Improvements
+- JWT for API authentication.
+- CORS hardening.
+- Rate limiting.
+- Password strength policies.
+- At-rest + in-transit encryption.
 
 ---
 
-## 🛡️ 15. **Role-Based Access Control (RBAC)**
-
-Add separate roles:
-
-* Super Admin
-* Billing Admin
-* Medical Admin
-* Doctor
-* Patient
-
-Granular permissions:
-
-* “Doctor cannot delete documents”
-* “Patients cannot see internal comments”
+# 📌 Notes
+- This roadmap is iterative.  
+- Each phase should be developed in branches and merged via PR with testing.  
+- Features labeled **high priority** directly improve user adoption and investor appeal.
 
 ---
 
-## 📚 16. **Health Records API (FHIR Compatibility)**
+# 🎯 Final Milestones Summary
 
-Later you can integrate with:
-
-* Hospitals
-* Insurance
-* Pharmacy networks
-
-Using **FHIR (Fast Healthcare Interoperability Resources)**.
-
-Huge if you ever want to scale.
-
----
-
-# ⚡ What I recommend **YOU** build next (Based on your project flow)
-
-Given where you are:
-
-### Build these next — in order:
-
-1. **Appointment Booking System** (foundation)
-2. **Prescription PDF generator**
-3. **Doctor–Patient Messaging**
-4. **Video Call Integration**
-5. **Admin Analytics Dashboard**
-
-These 5 put you at a **sellable MVP** level.
+| Phase | Milestone | Status |
+|-------|-----------|--------|
+| 1 | Core MVP | ✅ Done |
+| 2 | MVP Upgrade | 🔥 High Priority |
+| 3 | Communication Layer | 🔥 High Priority |
+| 4 | Medical + Compliance | 🔶 Important |
+| 5 | Growth Features | Medium Priority |
+| 6 | AI Extensions | Optional |
+| 7 | FHIR Interoperability | Advanced |
+| 8 | Deployment & Security | Required for launch |
 
 ---
 
-# If you want, I can generate:
-
-✅ ER Diagram for all models
-✅ Database schema for appointment system
-✅ Full code for messaging system
-✅ Appointment booking backend + UI
-✅ PDF generation templates
-✅ Video call integration (Twilio)
-✅ Subscription plans with Stripe Billing
-✅ Admin dashboards
-
-Tell me which feature you want to build next, and we’ll layer it cleanly into the structure you already have.
+# 🚀 End of Roadmap  
+MedConsult now has a clear roadmap that matches real startup expectations and your current implementation progress.
