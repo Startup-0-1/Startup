@@ -20,6 +20,7 @@ urlpatterns = [
     # Patient appointments
     path("appointments/", views.patient_appointment_list, name="patient-appointments"),
     path("appointments/new/", views.patient_appointment_create, name="patient-appointment-create"),
+    path("patient/appointments/reschedule/",views.patient_reschedule_block, name="patient-appointment-reschedule"),
 
     # Doctor appointments + schedule
     path("doctor/appointments/", views.doctor_appointment_list, name="doctor-appointments"),

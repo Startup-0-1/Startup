@@ -5,18 +5,10 @@ import stripe
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate,
-    login as auth_login,
-    logout as auth_logout,
-)
+from django.contrib.auth import (authenticate, login as auth_login, logout as auth_logout)
 from django.contrib.auth.decorators import login_required
-from django.http import (
-    HttpResponseBadRequest,
-    HttpResponseNotAllowed,
-    HttpResponseForbidden,
-)
-from django.shortcuts import render, redirect
+from django.http import (HttpResponseBadRequest, HttpResponseNotAllowed, HttpResponseForbidden)
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 
@@ -158,7 +150,7 @@ def get_available_slots_for_doctor(doctor: User, target_date: date):
             scheduled_for__gte=start_of_day,
             scheduled_for__lte=end_of_day,
         )
-        .exclude(status="cancelled")
+        .exclude(status__in=["cancelled", "rejected", "rescheduled"])
         .values_list("scheduled_for", flat=True)
     )
 
@@ -191,12 +183,7 @@ def get_available_slots_for_doctor(doctor: User, target_date: date):
 # GROUPING HELPERS
 # ===========================
 
-
 def group_appointments_for_patient(qs):
-    """
-    Group a patient's appointments into contiguous 30-min blocks
-    per doctor/date/reason/status/payment.
-    """
     qs = qs.order_by("doctor__id", "scheduled_for")
     blocks = []
     current = None
@@ -215,6 +202,7 @@ def group_appointments_for_patient(qs):
                 "payment": appt.payment,
                 "slot_ids": [str(appt.id)],
                 "slots": [appt],
+                "rescheduled_from": appt.rescheduled_from,
             }
             continue
 
@@ -227,6 +215,10 @@ def group_appointments_for_patient(qs):
         same_reason = appt.reason == current["reason"]
         same_payment = appt.payment_id == (current["payment"].id if current["payment"] else None)
         contiguous = appt.scheduled_for == last_slot_start + SLOT_DELTA
+        same_rescheduled_root = (
+            (appt.rescheduled_from_id or None)
+            == (current["rescheduled_from"].id if current["rescheduled_from"] else None)
+        )
 
         if (
             same_doctor
@@ -236,6 +228,7 @@ def group_appointments_for_patient(qs):
             and same_reason
             and same_payment
             and contiguous
+            and same_rescheduled_root
         ):
             current["slots"].append(appt)
             current["slot_ids"].append(str(appt.id))
@@ -253,6 +246,7 @@ def group_appointments_for_patient(qs):
                 "payment": appt.payment,
                 "slot_ids": [str(appt.id)],
                 "slots": [appt],
+                "rescheduled_from": appt.rescheduled_from,
             }
 
     if current is not None:
@@ -260,12 +254,7 @@ def group_appointments_for_patient(qs):
 
     return blocks
 
-
 def group_appointments_for_doctor(qs):
-    """
-    Group a doctor's appointments into contiguous 30-min blocks
-    per patient/date/reason/status/payment.
-    """
     qs = qs.order_by("patient__id", "scheduled_for")
     blocks = []
     current = None
@@ -284,6 +273,7 @@ def group_appointments_for_doctor(qs):
                 "payment": appt.payment,
                 "slot_ids": [str(appt.id)],
                 "slots": [appt],
+                "rescheduled_from": appt.rescheduled_from,
             }
             continue
 
@@ -296,6 +286,10 @@ def group_appointments_for_doctor(qs):
         same_reason = appt.reason == current["reason"]
         same_payment = appt.payment_id == (current["payment"].id if current["payment"] else None)
         contiguous = appt.scheduled_for == last_slot_start + SLOT_DELTA
+        same_rescheduled_root = (
+            (appt.rescheduled_from_id or None)
+            == (current["rescheduled_from"].id if current["rescheduled_from"] else None)
+        )
 
         if (
             same_doctor
@@ -305,6 +299,7 @@ def group_appointments_for_doctor(qs):
             and same_reason
             and same_payment
             and contiguous
+            and same_rescheduled_root
         ):
             current["slots"].append(appt)
             current["slot_ids"].append(str(appt.id))
@@ -322,6 +317,7 @@ def group_appointments_for_doctor(qs):
                 "payment": appt.payment,
                 "slot_ids": [str(appt.id)],
                 "slots": [appt],
+                "rescheduled_from": appt.rescheduled_from,
             }
 
     if current is not None:
@@ -444,20 +440,20 @@ def doctor_signup_page(request):
 # PATIENT APPOINTMENT VIEWS
 # ===========================
 
-
 @role_required("patient")
 def patient_appointment_list(request):
-    """
-    Show grouped appointments for the logged-in patient.
-    Each block = one row (start–end).
-    """
     qs = Appointment.objects.filter(patient=request.user).order_by("scheduled_for")
     blocks = group_appointments_for_patient(qs)
     return render(
         request,
         "core/appointments_patient_list.html",
-        {"appointment_blocks": blocks},
+        {
+            "appointment_blocks": blocks,
+            "now": timezone.now(),
+        },
     )
+
+
 
 
 @role_required("patient")
@@ -567,6 +563,147 @@ def patient_appointment_create(request):
     }
     return render(request, "core/appointments_patient_create.html", context)
 
+@role_required("patient")
+def patient_reschedule_block(request):
+    """
+    Let a patient reschedule an existing appointment block
+    (one or more 30-min slots) with the same doctor to a
+    new single 30-min slot.
+
+    We identify the block by:
+      - doctor_id
+      - original start datetime
+      - original end datetime
+    passed via query params.
+    """
+    user = request.user
+
+    doctor_id = request.GET.get("doctor_id") or request.POST.get("doctor_id")
+    start_str = request.GET.get("start") or request.POST.get("start")
+    end_str = request.GET.get("end") or request.POST.get("end")
+
+    if not (doctor_id and start_str and end_str):
+        messages.error(request, "Missing appointment information for rescheduling.")
+        return redirect("patient-appointments")
+
+    # Parse original block start/end (format: 2025-12-04T14:30)
+    tz = timezone.get_current_timezone()
+    try:
+        naive_start = datetime.strptime(start_str, "%Y-%m-%dT%H:%M")
+        naive_end = datetime.strptime(end_str, "%Y-%m-%dT%H:%M")
+        original_start = timezone.make_aware(naive_start, tz)
+        original_end = timezone.make_aware(naive_end, tz)
+    except ValueError:
+        messages.error(request, "Invalid appointment time for rescheduling.")
+        return redirect("patient-appointments")
+
+    doctor = get_object_or_404(User, id=doctor_id, role="doctor")
+
+    # All appointments in this block for this patient + doctor
+    original_qs = (
+        Appointment.objects.filter(
+            patient=user,
+            doctor=doctor,
+            scheduled_for__gte=original_start,
+            scheduled_for__lt=original_end,
+        )
+        .exclude(status__in=["cancelled", "completed", "rescheduled"])
+        .order_by("scheduled_for")
+    )
+
+    if not original_qs.exists():
+        messages.error(request, "Could not find an active appointment block to reschedule.")
+        return redirect("patient-appointments")
+
+    now = timezone.now()
+    if original_start <= now:
+        messages.error(request, "You cannot reschedule a past appointment.")
+        return redirect("patient-appointments")
+
+    # Date for new schedule
+    selected_date_str = request.GET.get("new_date") or request.POST.get("new_date")
+    selected_date = None
+    available_slots = []
+
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            selected_date = None
+
+    if selected_date:
+        # reuse your existing helper
+        available_slots = get_available_slots_for_doctor(doctor, selected_date)
+
+    # Handle final POST (confirm reschedule)
+    if request.method == "POST":
+        new_date_str = request.POST.get("new_date")
+        chosen_slot_str = request.POST.get("new_slot")  # ISO datetime string
+
+        if not (new_date_str and chosen_slot_str):
+            messages.error(request, "Please select a new date and time slot.")
+            url = (
+                reverse("patient-appointment-reschedule")
+                + f"?doctor_id={doctor_id}&start={start_str}&end={end_str}&new_date={new_date_str or ''}"
+            )
+            return redirect(url)
+
+        try:
+            naive_new_start = datetime.strptime(chosen_slot_str, "%Y-%m-%dT%H:%M")
+            new_start = timezone.make_aware(naive_new_start, tz)
+        except ValueError:
+            messages.error(request, "Invalid new time slot.")
+            return redirect("patient-appointments")
+
+        if new_start <= now:
+            messages.error(request, "You cannot reschedule to a past time.")
+            return redirect("patient-appointments")
+
+        # Double-check this slot is still free
+        conflict = Appointment.objects.filter(
+            doctor=doctor,
+            scheduled_for=new_start,
+        ).exclude(status__in=["cancelled", "rejected", "rescheduled"]).exists()
+
+        if conflict:
+            messages.error(request, "That time slot has just been taken. Please pick another.")
+            url = (
+                reverse("patient-appointment-reschedule")
+                + f"?doctor_id={doctor_id}&start={start_str}&end={end_str}&new_date={new_date_str}"
+            )
+            return redirect(url)
+
+        # Use first appointment in the original block as the "root"
+        original_root = original_qs.first()
+        block_reason = original_root.reason
+
+        # Create new appointment linked back to original via rescheduled_from
+        Appointment.objects.create(
+            patient=user,
+            doctor=doctor,
+            scheduled_for=new_start,
+            reason=block_reason,
+            status="reschedule_requested",
+            rescheduled_from=original_root,
+        )
+
+        messages.success(request, "Your appointment has been rescheduled.")
+        return redirect("patient-appointments")
+
+    context = {
+        "doctor": doctor,
+        "original_start": original_start,
+        "original_end": original_end,
+        "original_block_appointments": original_qs,
+        "selected_date": selected_date,
+        "available_slots": available_slots,
+        "doctor_id": doctor_id,
+        "start_str": start_str,
+        "end_str": end_str,
+    }
+    return render(request, "core/appointment_reschedule.html", context)
+
+
 
 # ===========================
 # DOCTOR APPOINTMENT VIEWS
@@ -624,14 +761,37 @@ def doctor_update_appointments(request):
     if not appointments:
         messages.error(request, "No matching appointments found.")
         return redirect("doctor-appointments")
-
+    
     if mode == "set_status":
         new_status = request.POST.get("new_status")
-        if new_status not in ["requested", "approved", "rejected", "completed", "cancelled"]:
+        if new_status not in ["requested", "approved", "rejected", "completed", "cancelled", "reschedule_requested"]:
             messages.error(request, "Invalid status.")
             return redirect("doctor-appointments")
 
         for appt in appointments:
+            # CASE 1: doctor is approving a rescheduled appointment
+            if new_status == "approved" and appt.rescheduled_from is not None:
+                original = appt.rescheduled_from
+
+                # Delete the original appointment so it disappears
+                # from both doctor and patient logs, and its slot
+                # becomes free for others.
+                if original is not None:
+                    original.delete()
+
+                # Approve the new appointment
+                appt.status = "approved"
+                appt.save()
+                continue
+
+            # CASE 2: doctor is rejecting/cancelling a rescheduled appointment
+            if new_status in ["rejected", "cancelled"] and appt.rescheduled_from is not None:
+                # Keep the original appointment as-is.
+                # Delete the rescheduled appointment so its slot becomes free.
+                appt.delete()
+                continue
+
+            # CASE 3: normal status update (non-rescheduled appointment)
             appt.status = new_status
             appt.save()
 
