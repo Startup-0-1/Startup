@@ -64,15 +64,16 @@
 
             <div class="field">
                 <label>Select time slots</label>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+                <div class="slot-grid">
                     {% for start, end in available_slots %}
-                        <label style="border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.5rem 0.75rem; background:#f9fafb; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+                        <label class="slot-card">
                             <input type="checkbox" name="slot_start"
-                                   value="{{ start|date:'Y-m-d\\TH:i' }}">
+                                value="{{ start|date:'Y-m-d\\TH:i' }}">
                             <span>{{ start|date:"g:i A" }} – {{ end|date:"g:i A" }}</span>
                         </label>
                     {% endfor %}
                 </div>
+            </div>
                 <small style="font-size:0.8rem; color:#6b7280;">
                     Minimum: 1 slot. You may choose multiple consecutive slots for longer sessions.
                 </small>
