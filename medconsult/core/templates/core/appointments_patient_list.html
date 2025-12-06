@@ -28,7 +28,7 @@
                         {% if block.doctor.doctor_profile %}
                             {{ block.doctor.doctor_profile.full_name }}
                         {% else %}
-                            {{ block.doctor.email }}
+                            {{ block.doctor.get_display_name }}
                         {% endif %}
                     </td>
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">

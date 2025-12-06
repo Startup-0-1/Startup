@@ -980,41 +980,40 @@ def prescriptions_view(request):
 # ===========================
 @login_required
 def settings_view(request):
-    """
-    Settings:
-    - Theme (light/dark)
-    - Location tracking toggle
-    - Time zone selection (moved here from standalone page)
-    """
     user = request.user
 
     if request.method == "POST":
         theme = request.POST.get("theme")
-        loc_tracking = request.POST.get("location_tracking") == "on"
-        tz_name = request.POST.get("timezone")
+        timezone_name = request.POST.get("timezone")
+        location_tracking = bool(request.POST.get("location_tracking"))
 
         if theme in ("light", "dark"):
             user.theme_preference = theme
-        user.location_tracking_enabled = loc_tracking
 
-        if tz_name:
-            try:
-                timezone.activate(tz_name)
-                request.session["django_timezone"] = tz_name
-            except Exception:
-                messages.error(request, "Invalid time zone selected.")
+        user.location_tracking_enabled = location_tracking
+
+        if timezone_name:
+            request.session["django_timezone"] = timezone_name
+            timezone.activate(timezone_name)
+        else:
+            request.session.pop("django_timezone", None)
+            timezone.deactivate()
 
         user.save()
         messages.success(request, "Settings updated.")
         return redirect("settings-view")
 
-    current_tz = timezone.get_current_timezone_name()
+    current_theme = user.theme_preference or "light"
+    current_tz = request.session.get("django_timezone", None)
+    location_tracking_enabled = user.location_tracking_enabled
+
     context = {
+        "current_theme": current_theme,
         "current_tz": current_tz,
-        "current_theme": user.theme_preference,
-        "location_tracking_enabled": user.location_tracking_enabled,
+        "location_tracking_enabled": location_tracking_enabled,
     }
     return render(request, "core/settings.html", context)
+
 
 # ===========================
 # Doctor Timetable/Availability Views

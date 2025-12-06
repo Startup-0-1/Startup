@@ -340,7 +340,7 @@
                 </div>
                 <div class="avatar-dropdown" id="avatar-dropdown">
                     <div class="section-label">
-                        {{ request.user.email }}
+                        {{ request.user.get_display_name }}
                     </div>
                     <a href="{% url 'profile' %}">Profile</a>
                     <a href="{% url 'documents' %}">Documents</a>

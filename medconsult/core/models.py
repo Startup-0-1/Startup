@@ -49,7 +49,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # NEW FIELDS 👇
     profile_image = models.ImageField(
         upload_to="profile_images/",
         blank=True,
@@ -62,21 +61,37 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     location_tracking_enabled = models.BooleanField(default=False)
 
-    # Django admin / permissions flags
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
     objects = UserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []  # email + password only
+    REQUIRED_FIELDS = []
+
+    def get_display_name(self):
+        """
+        Return a human-friendly display name for this user:
+        - patient → PatientProfile.full_name
+        - doctor → DoctorProfile.full_name
+        - fallback → user.email
+        """
+        # Try patient profile
+        for attr in ("patient_profile", "patientprofile"):
+            profile = getattr(self, attr, None)
+            if profile and getattr(profile, "full_name", None):
+                return profile.full_name
+
+        # Try doctor profile
+        for attr in ("doctor_profile", "doctorprofile"):
+            profile = getattr(self, attr, None)
+            if profile and getattr(profile, "full_name", None):
+                return profile.full_name
+
+        return self.email
 
     def __str__(self):
         return f"{self.email} ({self.role})"
-
-
-
-
 # ---------------------------
 # Patient & Doctor Profiles
 # ---------------------------
@@ -288,3 +303,5 @@ class DoctorAvailability(models.Model):
 
     def __str__(self):
         return f"{self.doctor.email} {self.date} {self.start_time}-{self.end_time}"
+
+
