@@ -3,7 +3,11 @@
 {% block content %}
 
 {% if request.user.is_authenticated %}
-    <h1>Welcome, {{ request.user.email }}</h1>
+    {% if request.user.role == "patient" %}
+        <h1>Welcome, {{ request.user.get_display_name }}</h1>
+    {% elif request.user.role == "doctor" %}
+        <h1>Welcome, Dr. {{ request.user.get_display_name }}</h1>
+    {% endif %}
     <p style="margin-top:0.4rem; color:#4b5563;">
         You are logged in as <strong>{{ request.user.role }}</strong>.
     </p>

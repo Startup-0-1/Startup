@@ -1,4 +1,4 @@
-#!/home/ojaswi/Startup/startup_venv/bin/python3
+#!/home/oj/Startup/startup_venv/bin/python3
 import sys
 from charset_normalizer.cli import cli_detect
 if __name__ == '__main__':
