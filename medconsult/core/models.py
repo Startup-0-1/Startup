@@ -7,6 +7,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
 )
 from django.db import models
+from django.core.exceptions import ValidationError 
 
 
 # ==========================
@@ -94,6 +95,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.email} ({self.role})"
 
+    @property   
+    def is_patient(self):
+        return self.role == "patient"
+
+    @property
+    def is_doctor(self):
+        return self.role == "doctor"
+
+    @property
+    def is_admin(self):
+        return self.role == "admin"
+
 
 # ==========================
 # PROFILE MODELS
@@ -119,7 +132,12 @@ class PatientProfile(models.Model):
         blank=True,
         null=True,
     )
-
+    
+    def clean(self):
+        super().clean()
+        if self.user.role != "patient":
+            raise ValidationError("PatientProfile.user must have role='patient'.")
+        
     def __str__(self):
         return f"PatientProfile({self.full_name})"
 
@@ -140,6 +158,11 @@ class DoctorProfile(models.Model):
     clinic_address = models.TextField(blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
+    def clean(self):
+        super().clean()
+        if self.user.role != "doctor":
+            raise ValidationError("DoctorProfile.user must have role='doctor'.")
+        
     def __str__(self):
         return f"DoctorProfile({self.full_name}, {self.specialization})"
 
