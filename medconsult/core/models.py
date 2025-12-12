@@ -1,21 +1,24 @@
-from datetime import time  # make sure at top of file
+from datetime import time 
 import uuid
-from django.db import models
+
 from django.contrib.auth.models import (
     AbstractBaseUser,
     PermissionsMixin,
     BaseUserManager,
 )
+from django.db import models
 
 
-# ---------------------------
-# Custom User + Manager
-# ---------------------------
+# ==========================
+# USER & AUTH MODELS
+# ==========================
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, role="patient", **extra_fields):
         if not email:
             raise ValueError("Users must have an email address")
+
         email = self.normalize_email(email)
         user = self.model(email=email, role=role, **extra_fields)
         user.set_password(password)
@@ -34,9 +37,7 @@ class UserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-# ---------------------------
-# User Model
-# ---------------------------
+
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = (
         ("patient", "Patient"),
@@ -92,31 +93,44 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
-# ---------------------------
-# Patient & Doctor Profiles
-# ---------------------------
+
+
+# ==========================
+# PROFILE MODELS
+# ==========================
+
 
 class PatientProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patient_profile")
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="patient_profile",
+    )
     full_name = models.CharField(max_length=255)
-    date_of_birth = models.CharField(max_length=50)  # keep as text for now to mirror TS
+    date_of_birth = models.CharField(max_length=50)  # kept as text for now
     gender = models.CharField(max_length=50)
     contact_number = models.CharField(max_length=50)
     address = models.TextField()
     emergency_contact = models.CharField(max_length=255, blank=True, null=True)
     insurance_provider = models.CharField(max_length=255, blank=True, null=True)
-    insurance_policy_number = models.CharField(max_length=255, blank=True, null=True)
+    insurance_policy_number = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return f"PatientProfile({self.full_name})"
 
-# ---------------------------
-# Doctor Profile
-# ---------------------------
+
 class DoctorProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="doctor_profile")
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="doctor_profile",
+    )
     full_name = models.CharField(max_length=255)
     specialization = models.CharField(max_length=255)
     license_number = models.CharField(max_length=255)
@@ -129,21 +143,28 @@ class DoctorProfile(models.Model):
     def __str__(self):
         return f"DoctorProfile({self.full_name}, {self.specialization})"
 
-# ---------------------------
-# Documents & Prescriptions
-# ---------------------------
+
+# ==========================
+# DOCUMENTS & PRESCRIPTIONS
+# ==========================
+
 
 def document_upload_path(instance, filename):
-    # owner/uuid/filename style
+    """
+    Store documents under:
+    documents/<owner_user_id>/<uuid>_<filename>
+    """
     return f"documents/{instance.owner_user.id}/{uuid.uuid4()}_{filename}"
 
 
 def prescription_upload_path(instance, filename):
+    """
+    Store prescription files under:
+    prescriptions/<patient_id>/<uuid>_<filename>
+    """
     return f"prescriptions/{instance.patient.id}/{uuid.uuid4()}_{filename}"
 
-# ---------------------------
-# Documents
-# ---------------------------
+
 class Document(models.Model):
     DOCUMENT_TYPE_CHOICES = (
         ("lab_report", "Lab Report"),
@@ -155,26 +176,35 @@ class Document(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner_user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="documents_owned"
+        User,
+        on_delete=models.CASCADE,
+        related_name="documents_owned",
     )
     uploaded_by_user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="documents_uploaded"
+        User,
+        on_delete=models.CASCADE,
+        related_name="documents_uploaded",
     )
     uploader_role = models.CharField(
         max_length=20,
-        choices=(("patient", "Patient"), ("doctor", "Doctor"), ("admin", "Admin")),
+        choices=(
+            ("patient", "Patient"),
+            ("doctor", "Doctor"),
+            ("admin", "Admin"),
+        ),
     )
     file_name = models.CharField(max_length=255)
     file = models.FileField(upload_to=document_upload_path)
-    document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPE_CHOICES)
+    document_type = models.CharField(
+        max_length=50,
+        choices=DOCUMENT_TYPE_CHOICES,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Document({self.file_name}, {self.document_type})"
 
-# ---------------------------
-# Prescriptions
-# ---------------------------
+
 class Prescription(models.Model):
     STATUS_CHOICES = (
         ("active", "Active"),
@@ -183,23 +213,38 @@ class Prescription(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="prescriptions_patient"
+        User,
+        on_delete=models.CASCADE,
+        related_name="prescriptions_patient",
     )
     doctor = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="prescriptions_doctor"
+        User,
+        on_delete=models.CASCADE,
+        related_name="prescriptions_doctor",
     )
     title = models.CharField(max_length=255)
     notes = models.TextField()
-    file = models.FileField(upload_to=prescription_upload_path, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    file = models.FileField(
+        upload_to=prescription_upload_path,
+        blank=True,
+        null=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="active",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Prescription({self.title})"
 
-# ---------------------------
-# Payments
-# ---------------------------
+
+# ==========================
+# PAYMENTS
+# ==========================
+
+
 class Payment(models.Model):
     STATUS_CHOICES = (
         ("created", "Created"),
@@ -209,21 +254,33 @@ class Payment(models.Model):
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="payments",
+    )
     amount_cents = models.IntegerField()  # store in cents (e.g. 5000 = $50.00)
     currency = models.CharField(max_length=10, default="usd")
     stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="created")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="created",
+    )
     description = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Payment({self.user.email}, {self.amount_cents/100:.2f} {self.currency}, {self.status})"
+        amount = self.amount_cents / 100 if self.amount_cents is not None else 0
+        return f"Payment({self.user.email}, {amount:.2f} {self.currency}, {self.status})"
 
-# ---------------------------
-# Appointments
-# ---------------------------
+
+# ==========================
+# APPOINTMENTS & AVAILABILITY
+# ==========================
+
+
 class Appointment(models.Model):
     STATUS_CHOICES = (
         ("requested", "Requested"),
@@ -258,7 +315,11 @@ class Appointment(models.Model):
     )
     scheduled_for = models.DateTimeField()
     reason = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="requested")
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="requested",
+    )
     payment = models.ForeignKey(
         "Payment",
         on_delete=models.SET_NULL,
@@ -278,22 +339,23 @@ class Appointment(models.Model):
         ]
 
     def __str__(self):
-        return f"Appointment({self.patient.email} → {self.doctor.email} @ {self.scheduled_for} [{self.status}])"
+        return (
+            f"Appointment({self.patient.email} → "
+            f"{self.doctor.email} @ {self.scheduled_for} [{self.status}])"
+        )
 
     @property
     def is_paid(self):
         return self.payment is not None and self.payment.status == "paid"
 
 
-# ---------------------------
-# Doctor Availability
-# ---------------------------
 class DoctorAvailability(models.Model):
     """
     A simple availability window for a doctor on a specific date.
     Example: Jan 5, 2026 from 09:00 to 10:00.
     We will turn this into 30-minute slots on the patient side.
     """
+
     doctor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -313,5 +375,3 @@ class DoctorAvailability(models.Model):
 
     def __str__(self):
         return f"{self.doctor.email} {self.date} {self.start_time}-{self.end_time}"
-
-
