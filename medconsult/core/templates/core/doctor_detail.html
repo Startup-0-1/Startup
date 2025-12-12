@@ -1,0 +1,42 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+{% with p=profile %}
+<h2>{{ p.full_name|default:doctor.email }}</h2>
+<p>
+    <strong>Specialization:</strong>
+    {{ p.specialization|default:"Not specified" }}
+</p>
+
+{% if p.clinic_name or p.clinic_address %}
+    <p>
+        <strong>Clinic:</strong>
+        {{ p.clinic_name|default:"" }}<br>
+        {{ p.clinic_address|default:"" }}
+    </p>
+{% endif %}
+
+{% if p.contact_number %}
+    <p>
+        <strong>Contact:</strong> {{ p.contact_number }}
+    </p>
+{% endif %}
+
+{% if p.bio %}
+    <p>
+        <strong>About:</strong><br>
+        {{ p.bio }}
+    </p>
+{% endif %}
+
+<hr style="margin:1.5rem 0;">
+
+<h3>Book an Appointment</h3>
+<p>You can request an appointment with this doctor.</p>
+
+<a href="{% url 'patient-appointment-create' %}?doctor_id={{ doctor.id }}"
+   class="button button-primary">
+    Book Appointment
+</a>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Find a Doctor</h2>
+<p>Search by name, specialization, or city.</p>
+
+<form method="get" style="margin: 1rem 0;">
+    <div class="field">
+        <label>Search (name, email, clinic)</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sharma, skin, Apollo">
+    </div>
+    <div class="field">
+        <label>Specialization</label>
+        <input type="text" name="specialization" value="{{ specialization }}" placeholder="e.g. Dermatology">
+    </div>
+    <div class="field">
+        <label>City / Area</label>
+        <input type="text" name="city" value="{{ city }}" placeholder="e.g. Mumbai, Indiranagar">
+    </div>
+    <button type="submit" class="button button-primary">Search</button>
+</form>
+
+{% if doctors %}
+    <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+        <thead>
+            <tr>
+                <th>Doctor</th>
+                <th>Specialization</th>
+                <th>Clinic</th>
+                <th>Location</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for d in doctors %}
+            {% with p=d.doctor_profile %}
+            <tr>
+                <td>
+                    {{ p.full_name|default:d.email }}
+                </td>
+                <td>
+                    {{ p.specialization|default:"—" }}
+                </td>
+                <td>
+                    {{ p.clinic_name|default:"—" }}
+                </td>
+                <td>
+                    {{ p.clinic_address|default:"—" }}
+                </td>
+                <td>
+                    <a href="{% url 'doctor-detail' d.id %}" class="button button-outline">
+                        View Profile
+                    </a>
+                </td>
+            </tr>
+            {% endwith %}
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p style="margin-top:1rem;">No doctors found. Try changing your filters.</p>
+{% endif %}
+{% endblock %}

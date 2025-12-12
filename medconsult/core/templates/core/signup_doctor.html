@@ -51,7 +51,18 @@
         <label>Bio (optional)</label>
         <textarea name="bio" rows="2"></textarea>
     </div>
-
+    <div class="field">
+        <label>Time Zone</label>
+        <select name="timezone" required>
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">US Eastern (New York)</option>
+            <option value="Europe/London">UK (London)</option>
+            <option value="Asia/Kolkata">India Standard Time (IST)</option>
+        </select>
+        <small style="font-size:0.8rem; color:#6b7280;">
+            Patients will see your availability converted to their own time zone.
+        </small>
+    </div>
     <button type="submit" class="button button-primary">Create Doctor Account</button>
 </form>
 {% endblock %}
