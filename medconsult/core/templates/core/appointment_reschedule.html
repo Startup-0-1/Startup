@@ -1,0 +1,61 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h2>Reschedule Appointment</h2>
+
+<p style="margin-bottom:1rem;">
+    Doctor:
+    {% if doctor.doctor_profile %}
+        {{ doctor.doctor_profile.full_name }}
+    {% else %}
+        {{ doctor.email }}
+    {% endif %}
+    <br>
+    Current time:
+    {{ original_start|date:"M j, Y g:i a" }} – {{ original_end|date:"g:i a" }}
+</p>
+
+<form method="get" action="{% url 'patient-appointment-reschedule' %}" style="margin-top:1rem; margin-bottom:1rem;">
+    <input type="hidden" name="doctor_id" value="{{ doctor_id }}">
+    <input type="hidden" name="start" value="{{ start_str }}">
+    <input type="hidden" name="end" value="{{ end_str }}">
+
+    <div class="field">
+        <label>Select new date</label>
+        <input type="date" name="new_date"
+               value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}">
+    </div>
+    <button type="submit" class="button button-outline">Show available slots</button>
+</form>
+
+{% if selected_date %}
+    <h3>Available 30-minute slots on {{ selected_date }}</h3>
+
+    {% if available_slots %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="doctor_id" value="{{ doctor_id }}">
+            <input type="hidden" name="start" value="{{ start_str }}">
+            <input type="hidden" name="end" value="{{ end_str }}">
+            <input type="hidden" name="new_date" value="{{ selected_date|date:'Y-m-d' }}">
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; margin-top:0.75rem;">
+                {% for start_dt, end_dt in available_slots %}
+                    <label style="border:1px solid #e5e7eb; padding:0.5rem 0.75rem; border-radius:0.5rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+                        <input type="radio" name="new_slot"
+                               value="{{ start_dt|date:'Y-m-d\\TH:i' }}">
+                        <span>{{ start_dt|date:"g:i A" }} – {{ end_dt|date:"g:i A" }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="button button-primary" style="margin-top:1rem;">
+                Confirm Reschedule
+            </button>
+        </form>
+    {% else %}
+        <p>No available slots on this day.</p>
+    {% endif %}
+{% endif %}
+
+{% endblock %}

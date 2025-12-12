@@ -1,3 +1,8 @@
+
+
+
+
+
 {% extends "core/base.html" %}
 
 {% block content %}
@@ -12,6 +17,7 @@
             <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Status</th>
             <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Paid?</th>
             <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Reason</th>
+            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -33,6 +39,11 @@
                     </td>
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {{ block.status|title }}
+                        {% if block.rescheduled_from %}
+                            <div style="font-size:0.8rem; color:#6b7280;">
+                                (Rescheduled from {{ block.rescheduled_from.scheduled_for|date:"M j, Y g:i a" }})
+                            </div>
+                        {% endif %}
                     </td>
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {% if block.payment and block.payment.status == "paid" %}
@@ -44,11 +55,25 @@
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {{ block.reason|default:"—" }}
                     </td>
+                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+                        {# Only allow reschedule for future, non-cancelled, non-completed blocks #}
+                        {% if block.start > now and block.status != "cancelled" and block.status != "completed" %}
+                            <a
+                              href="{% url 'patient-appointment-reschedule' %}?doctor_id={{ block.doctor.id }}&start={{ block.start|date:'Y-m-d\\TH:i' }}&end={{ block.end|date:'Y-m-d\\TH:i' }}"
+                              class="button button-outline"
+                              style="padding:0.3rem 0.8rem; font-size:0.85rem;"
+                            >
+                                Reschedule
+                            </a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         {% else %}
             <tr>
-                <td colspan="6" style="padding:0.75rem; text-align:center; color:#6b7280;">
+                <td colspan="7" style="padding:0.75rem; text-align:center; color:#6b7280;">
                     No appointments yet.
                 </td>
             </tr>

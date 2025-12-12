@@ -231,6 +231,8 @@ class Appointment(models.Model):
         ("rejected", "Rejected"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
+        ("reschedule_requested", "Reschedule Requested"),
+        ("rescheduled", "Rescheduled"),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -245,6 +247,14 @@ class Appointment(models.Model):
         on_delete=models.CASCADE,
         related_name="doctor_appointments",
         limit_choices_to={"role": "doctor"},
+    )
+    rescheduled_from = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reschedules",
+        help_text="If this appointment is a reschedule, link to the original one.",
     )
     scheduled_for = models.DateTimeField()
     reason = models.TextField(blank=True, null=True)

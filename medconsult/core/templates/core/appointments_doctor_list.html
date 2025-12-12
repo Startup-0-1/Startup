@@ -35,6 +35,11 @@
                     </td>
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {{ block.status|title }}
+                        {% if block.rescheduled_from %}
+                            <div style="font-size:0.8rem; color:#6b7280;">
+                                (Rescheduled from {{ block.rescheduled_from.scheduled_for|date:"M j, Y g:i a" }})
+                            </div>
+                        {% endif %}
                     </td>
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {% if block.payment and block.payment.status == "paid" %}
@@ -62,6 +67,7 @@
                                 <option value="rejected" {% if block.status == "rejected" %}selected{% endif %}>Rejected</option>
                                 <option value="completed" {% if block.status == "completed" %}selected{% endif %}>Completed</option>
                                 <option value="cancelled" {% if block.status == "cancelled" %}selected{% endif %}>Cancelled</option>
+                                <option value="reschedule_requested" {% if block.status == "reschedule_requested" %}selected{% endif %}>Reschedule Requested</option>
                             </select>
                             <button type="submit" class="button button-outline" style="margin-top:0.25rem;">
                                 Update
