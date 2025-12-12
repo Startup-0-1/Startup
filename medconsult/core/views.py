@@ -60,8 +60,16 @@ def role_required(required_role):
         @wraps(view_func)
         @login_required
         def _wrapped(request, *args, **kwargs):
-            if request.user.role == "admin" or request.user.role == required_role:
+            user = request.user
+
+            # Admin can access everything
+            if getattr(user, "is_admin", False):
                 return view_func(request, *args, **kwargs)
+
+            # Normal role match
+            if user.role == required_role:
+                return view_func(request, *args, **kwargs)
+
             return HttpResponseForbidden("You do not have permission to access this resource.")
         return _wrapped
     return decorator
@@ -725,7 +733,7 @@ def doctor_update_appointments(request):
 # ==============================================================
 #  PAYMENT VIEWS
 # ==============================================================
-@login_required
+@role_required("patient")
 def payment_page(request):
     amount_cents = 5000
     currency = "usd"
@@ -736,7 +744,7 @@ def payment_page(request):
     )
 
 
-@login_required
+@role_required("patient")
 def create_checkout_session(request):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -779,7 +787,7 @@ def create_checkout_session(request):
     return redirect(session.url)
 
 
-@login_required
+@role_required("patient")
 def payment_success(request):
     session_id = request.GET.get("session_id")
     if not session_id:
@@ -802,7 +810,7 @@ def payment_success(request):
     )
 
 
-@login_required
+@role_required("patient")
 def payment_cancel(request):
     return render(request, "core/payment_cancel.html")
 
@@ -987,14 +995,19 @@ def documents_view(request):
 @login_required
 def prescriptions_view(request):
     user = request.user
-    if user.role == "patient":
+
+    if getattr(user, "is_patient", False):
         prescriptions = Prescription.objects.filter(patient=user).order_by("-created_at")
-    elif user.role == "doctor":
+    elif getattr(user, "is_doctor", False):
         prescriptions = Prescription.objects.filter(doctor=user).order_by("-created_at")
-    else:
+    elif getattr(user, "is_admin", False):
         prescriptions = Prescription.objects.all().order_by("-created_at")
+    else:
+        # Fallback: no prescriptions if some weird role sneaks in
+        prescriptions = Prescription.objects.none()
 
     return render(request, "core/prescriptions.html", {"prescriptions": prescriptions})
+
 
 
 # ==============================================================
