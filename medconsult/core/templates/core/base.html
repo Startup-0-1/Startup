@@ -302,6 +302,7 @@
         <div class="brand">MedConsult</div>
         &nbsp;&nbsp;
         <a href="{% url 'welcome' %}">Home</a>
+        <a href="{% url 'doctor-search' %}">Find Doctors</a>
         {% if request.user.is_authenticated %}
             {% if request.user.role == "patient" %}
                 <a href="{% url 'patient-appointments' %}">My Appointments</a>

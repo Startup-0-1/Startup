@@ -1,7 +1,7 @@
+import stripe
 from datetime import datetime, date, time, timedelta
 from functools import wraps
-
-import stripe
+from zoneinfo import ZoneInfo, available_timezones
 
 from django.conf import settings
 from django.contrib import messages
@@ -20,7 +20,7 @@ from django.http import (
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.db import IntegrityError
+from django.db.models import Q
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -46,6 +46,11 @@ from .serializers import (
 #  STRIPE CONFIGURATION
 # ==============================================================
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+# ==============================================================
+#  TIMEZONE LIST (NO EXTRA DEPENDENCIES)
+# ==============================================================
+TIMEZONES = sorted(available_timezones())
 
 
 # ==============================================================
@@ -129,12 +134,25 @@ SLOT_MINUTES = 30
 SLOT_DELTA = timedelta(minutes=SLOT_MINUTES)
 
 
+def get_user_timezone(user):
+    """
+    Return a ZoneInfo timezone for a given user.
+    Falls back to project TIME_ZONE if user has none or it's invalid.
+    """
+    tz_name = getattr(user, "timezone", None) or getattr(settings, "TIME_ZONE", "UTC")
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:
+        return ZoneInfo(getattr(settings, "TIME_ZONE", "UTC"))
+
+
 def get_available_slots_for_doctor(doctor: User, target_date: date):
     """
     Return 30-minute slots that are:
-        - Within DoctorAvailability windows
+        - Within DoctorAvailability windows (interpreted in DOCTOR local time)
         - Not booked
         - In the future
+    NOTE: Returned datetimes are timezone-aware in doctor_tz.
     """
     windows = DoctorAvailability.objects.filter(
         doctor=doctor,
@@ -144,13 +162,18 @@ def get_available_slots_for_doctor(doctor: User, target_date: date):
     if not windows.exists():
         return []
 
-    tz = timezone.get_current_timezone()
+    doctor_tz = get_user_timezone(doctor)
 
-    # Full-day range
-    start_of_day = timezone.make_aware(datetime.combine(target_date, time(0, 0)), tz)
-    end_of_day = timezone.make_aware(datetime.combine(target_date, time(23, 59, 59)), tz)
+    # Full-day range in DOCTOR local time
+    start_of_day = timezone.make_aware(
+        datetime.combine(target_date, time(0, 0)),
+        doctor_tz,
+    )
+    end_of_day = timezone.make_aware(
+        datetime.combine(target_date, time(23, 59, 59)),
+        doctor_tz,
+    )
 
-    # Booked slots (any status except cancelled/rejected/rescheduled)
     booked = set(
         Appointment.objects.filter(
             doctor=doctor,
@@ -167,11 +190,11 @@ def get_available_slots_for_doctor(doctor: User, target_date: date):
     for w in windows:
         current_start = timezone.make_aware(
             datetime.combine(target_date, w.start_time),
-            tz,
+            doctor_tz,
         )
         window_end = timezone.make_aware(
             datetime.combine(target_date, w.end_time),
-            tz,
+            doctor_tz,
         )
 
         while current_start + SLOT_DELTA <= window_end:
@@ -189,9 +212,6 @@ def get_available_slots_for_doctor(doctor: User, target_date: date):
 #  APPOINTMENT GROUPING HELPERS
 # ==============================================================
 def group_appointments_for_patient(qs):
-    """
-    Collapse contiguous 30-minute appointments into blocks.
-    """
     qs = qs.order_by("doctor__id", "scheduled_for")
     blocks, current = [], None
 
@@ -254,9 +274,6 @@ def group_appointments_for_patient(qs):
 
 
 def group_appointments_for_doctor(qs):
-    """
-    Same grouping logic but keyed by patient.
-    """
     qs = qs.order_by("patient__id", "scheduled_for")
     blocks, current = [], None
 
@@ -371,6 +388,14 @@ def patient_signup_page(request):
         serializer = PatientSignupSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
+
+            tz_str = request.POST.get("timezone") or getattr(settings, "TIME_ZONE", "UTC")
+            user.timezone = tz_str
+            user.save()
+
+            request.session["django_timezone"] = tz_str
+            timezone.activate(tz_str)
+
             auth_login(request, user)
             messages.success(request, "Patient account created and logged in.")
             return redirect("welcome")
@@ -379,7 +404,7 @@ def patient_signup_page(request):
             for err in errs:
                 messages.error(request, f"{field}: {err}")
 
-    return render(request, "core/signup_patient.html")
+    return render(request, "core/signup_patient.html", {"timezones": TIMEZONES})
 
 
 def doctor_signup_page(request):
@@ -401,6 +426,14 @@ def doctor_signup_page(request):
         serializer = DoctorSignupSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
+
+            tz_str = request.POST.get("timezone") or getattr(settings, "TIME_ZONE", "UTC")
+            user.timezone = tz_str
+            user.save()
+
+            request.session["django_timezone"] = tz_str
+            timezone.activate(tz_str)
+
             auth_login(request, user)
             messages.success(request, "Doctor account created and logged in.")
             return redirect("welcome")
@@ -409,7 +442,7 @@ def doctor_signup_page(request):
             for err in errs:
                 messages.error(request, f"{field}: {err}")
 
-    return render(request, "core/signup_doctor.html")
+    return render(request, "core/signup_doctor.html", {"timezones": TIMEZONES})
 
 
 # ==============================================================
@@ -430,6 +463,10 @@ def patient_appointment_create(request):
     """
     Step 1: Choose doctor + date → see slots
     Step 2: POST → create 1+ appointment slots
+
+    IMPORTANT:
+    - Template posts slot_start as UTC string (because you used start|utc|date:"Y-m-d\\TH:i")
+    - We must parse that as UTC, not as the patient's current timezone.
     """
     doctors = User.objects.filter(role="doctor", is_active=True).order_by("email")
 
@@ -440,7 +477,6 @@ def patient_appointment_create(request):
     selected_date = None
     available_slots = []
 
-    # Step 1 — get requested doctor/date → show slots
     if doctor_param and date_param:
         try:
             selected_doctor = User.objects.get(id=doctor_param, role="doctor")
@@ -449,7 +485,6 @@ def patient_appointment_create(request):
         except Exception:
             messages.error(request, "Invalid doctor or date selection.")
 
-    # Step 2 — POST booking
     if request.method == "POST":
         doc_id = request.POST.get("doctor_id")
         date_str = request.POST.get("date")
@@ -466,18 +501,19 @@ def patient_appointment_create(request):
 
         try:
             doctor = User.objects.get(id=doc_id, role="doctor")
-            selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            _ = datetime.strptime(date_str, "%Y-%m-%d").date()
         except Exception:
             messages.error(request, "Invalid doctor or date.")
             return redirect("patient-appointment-create")
 
         created = 0
-        tz = timezone.get_current_timezone()
+        utc = ZoneInfo("UTC")
 
         for slot_str in slot_starts:
             try:
+                # slot_str is UTC already
                 slot_naive = datetime.strptime(slot_str, "%Y-%m-%dT%H:%M")
-                slot_start = timezone.make_aware(slot_naive, tz)
+                slot_start = timezone.make_aware(slot_naive, utc)
             except ValueError:
                 continue
 
@@ -510,9 +546,6 @@ def patient_appointment_create(request):
 
 @role_required("patient")
 def patient_reschedule_block(request):
-    """
-    Reschedule a block of contiguous 30-minute appointments.
-    """
     user = request.user
 
     doctor_id = request.GET.get("doctor_id") or request.POST.get("doctor_id")
@@ -523,7 +556,7 @@ def patient_reschedule_block(request):
         messages.error(request, "Missing appointment information.")
         return redirect("patient-appointments")
 
-    # Parse original block range
+    # These start/end come from links rendered in patient timezone (localtime).
     tz = timezone.get_current_timezone()
     try:
         naive_start = datetime.strptime(start_str, "%Y-%m-%dT%H:%M")
@@ -564,7 +597,6 @@ def patient_reschedule_block(request):
         except ValueError:
             pass
 
-    # POST — finalize reschedule
     if request.method == "POST":
         new_date = request.POST.get("new_date")
         new_slot = request.POST.get("new_slot")
@@ -573,6 +605,7 @@ def patient_reschedule_block(request):
             messages.error(request, "Select new date and time.")
             return redirect(request.get_full_path())
 
+        # new_slot is rendered from available_slots andz: it is in CURRENT timezone (patient), not UTC.
         try:
             naive_new_start = datetime.strptime(new_slot, "%Y-%m-%dT%H:%M")
             new_start = timezone.make_aware(naive_new_start, tz)
@@ -648,12 +681,6 @@ def doctor_appointment_list(request):
 
 @role_required("doctor")
 def doctor_update_appointments(request):
-    """
-    Doctor bulk updates:
-        - approve/reject block
-        - cancel slots
-        - handle reschedules
-    """
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
 
@@ -672,9 +699,6 @@ def doctor_update_appointments(request):
         messages.error(request, "No matching appointments.")
         return redirect("doctor-appointments")
 
-    # --------------------------
-    # SET STATUS MODE
-    # --------------------------
     if mode == "set_status":
         new_status = request.POST.get("new_status")
 
@@ -686,8 +710,6 @@ def doctor_update_appointments(request):
             return redirect("doctor-appointments")
 
         for appt in appointments:
-
-            # CASE 1 — approving a rescheduled appointment
             if new_status == "approved" and appt.rescheduled_from:
                 original = appt.rescheduled_from
                 original.delete()
@@ -695,21 +717,16 @@ def doctor_update_appointments(request):
                 appt.save()
                 continue
 
-            # CASE 2 — rejecting/cancelling a rescheduled appointment
             if new_status in ["rejected", "cancelled"] and appt.rescheduled_from:
                 appt.delete()
                 continue
 
-            # CASE 3 — normal
             appt.status = new_status
             appt.save()
 
         messages.success(request, f"Status updated to '{new_status}' for selected block.")
         return redirect("doctor-appointments")
 
-    # --------------------------
-    # CANCEL SLOTS MODE
-    # --------------------------
     elif mode == "cancel_slots":
         count = 0
         for appt in appointments:
@@ -725,9 +742,8 @@ def doctor_update_appointments(request):
 
         return redirect("doctor-appointments")
 
-    else:
-        messages.error(request, "Unknown action.")
-        return redirect("doctor-appointments")
+    messages.error(request, "Unknown action.")
+    return redirect("doctor-appointments")
 
 
 # ==============================================================
@@ -737,7 +753,6 @@ def doctor_update_appointments(request):
 def payment_page(request):
     amount_cents = 5000
     currency = "usd"
-
     return render(
         request, "core/payment.html",
         {"amount_dollars": amount_cents / 100, "currency": currency.upper()},
@@ -865,13 +880,6 @@ class MeView(APIView):
 # ==============================================================
 @login_required
 def profile_view(request):
-    """
-    User profile management:
-        - Update email
-        - Update patient/doctor fields
-        - Change password
-        - Upload profile image
-    """
     user = request.user
     patient_profile = getattr(user, "patient_profile", None)
     doctor_profile = getattr(user, "doctor_profile", None)
@@ -879,9 +887,6 @@ def profile_view(request):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        # ----------------------
-        # Update profile fields
-        # ----------------------
         if action == "update_profile":
             new_email = request.POST.get("email", "").strip()
             if new_email and new_email != user.email:
@@ -892,10 +897,11 @@ def profile_view(request):
                     user.save()
                     messages.success(request, "Email updated.")
 
-            # Patient fields
             if patient_profile:
                 patient_profile.full_name = request.POST.get("full_name", patient_profile.full_name)
-                patient_profile.date_of_birth = request.POST.get("date_of_birth", patient_profile.date_of_birth)
+                patient_profile.date_of_birth = normalize_dob_input(
+                    request.POST.get("date_of_birth", patient_profile.date_of_birth)
+                )
                 patient_profile.gender = request.POST.get("gender", patient_profile.gender)
                 patient_profile.contact_number = request.POST.get("contact_number", patient_profile.contact_number)
                 patient_profile.address = request.POST.get("address", patient_profile.address)
@@ -904,7 +910,6 @@ def profile_view(request):
                 patient_profile.insurance_policy_number = request.POST.get("insurance_policy_number", patient_profile.insurance_policy_number)
                 patient_profile.save()
 
-            # Doctor fields
             if doctor_profile:
                 doctor_profile.full_name = request.POST.get("full_name", doctor_profile.full_name)
                 doctor_profile.specialization = request.POST.get("specialization", doctor_profile.specialization)
@@ -916,9 +921,6 @@ def profile_view(request):
             messages.success(request, "Profile updated.")
             return redirect("profile")
 
-        # ----------------------
-        # Change password
-        # ----------------------
         elif action == "change_password":
             current_pw = request.POST.get("current_password")
             new_pw1 = request.POST.get("new_password1")
@@ -936,9 +938,6 @@ def profile_view(request):
 
             return redirect("profile")
 
-        # ----------------------
-        # Upload profile image
-        # ----------------------
         elif action == "upload_image":
             img = request.FILES.get("profile_image")
             if not img:
@@ -1003,11 +1002,9 @@ def prescriptions_view(request):
     elif getattr(user, "is_admin", False):
         prescriptions = Prescription.objects.all().order_by("-created_at")
     else:
-        # Fallback: no prescriptions if some weird role sneaks in
         prescriptions = Prescription.objects.none()
 
     return render(request, "core/prescriptions.html", {"prescriptions": prescriptions})
-
 
 
 # ==============================================================
@@ -1028,9 +1025,11 @@ def settings_view(request):
         user.location_tracking_enabled = location_tracking
 
         if timezone_name:
+            user.timezone = timezone_name
             request.session["django_timezone"] = timezone_name
             timezone.activate(timezone_name)
         else:
+            user.timezone = getattr(settings, "TIME_ZONE", "UTC")
             request.session.pop("django_timezone", None)
             timezone.deactivate()
 
@@ -1038,10 +1037,17 @@ def settings_view(request):
         messages.success(request, "Settings updated.")
         return redirect("settings-view")
 
+    current_tz = (
+        request.session.get("django_timezone")
+        or getattr(user, "timezone", None)
+        or getattr(settings, "TIME_ZONE", "UTC")
+    )
+
     context = {
         "current_theme": user.theme_preference or "light",
-        "current_tz": request.session.get("django_timezone"),
+        "current_tz": current_tz,
         "location_tracking_enabled": user.location_tracking_enabled,
+        "timezones": TIMEZONES,
     }
     return render(request, "core/settings.html", context)
 
@@ -1051,10 +1057,6 @@ def settings_view(request):
 # ==============================================================
 @role_required("doctor")
 def doctor_schedule_view(request):
-    """
-    Doctor sets availability windows per day.
-    Patients see 30-minute slots generated from these windows.
-    """
     doctor = request.user
 
     date_param = request.GET.get("date") or request.POST.get("selected_date")
@@ -1065,9 +1067,6 @@ def doctor_schedule_view(request):
         except ValueError:
             selected_date = None
 
-    # --------------------------
-    # POST — DELETE SLOT
-    # --------------------------
     if request.method == "POST" and request.POST.get("action") == "delete_slot":
         slot_str = request.POST.get("slot_start")
         if not slot_str:
@@ -1080,7 +1079,7 @@ def doctor_schedule_view(request):
             messages.error(request, "Invalid slot timestamp.")
             return redirect(request.get_full_path())
 
-        tz = timezone.get_current_timezone()
+        tz = timezone.get_current_timezone()  # doctor tz via middleware
         slot_start = timezone.make_aware(naive_start, tz)
         slot_end = slot_start + SLOT_DELTA
 
@@ -1088,7 +1087,6 @@ def doctor_schedule_view(request):
             messages.error(request, "Cannot delete past slot.")
             return redirect(request.get_full_path())
 
-        # Cannot delete booked slot
         if Appointment.objects.filter(
             doctor=doctor,
             scheduled_for=slot_start,
@@ -1110,7 +1108,6 @@ def doctor_schedule_view(request):
 
         s, e = window.start_time, window.end_time
 
-        # Remove slot from window (4 scenarios)
         if s == slot_start.time() and e == slot_end.time():
             window.delete()
         elif s == slot_start.time() and slot_end.time() < e:
@@ -1120,7 +1117,6 @@ def doctor_schedule_view(request):
             window.end_time = slot_start.time()
             window.save()
         else:
-            # Split window into two
             DoctorAvailability.objects.create(
                 doctor=doctor,
                 date=slot_date,
@@ -1133,9 +1129,6 @@ def doctor_schedule_view(request):
         messages.success(request, "Slot removed.")
         return redirect(request.get_full_path())
 
-    # --------------------------
-    # POST — CREATE/UPDATE WINDOW
-    # --------------------------
     if request.method == "POST" and request.POST.get("action") != "delete_slot":
         date_str = request.POST.get("date")
         start_str = request.POST.get("start_time")
@@ -1166,13 +1159,68 @@ def doctor_schedule_view(request):
         messages.success(request, f"Availability {'created' if created else 'updated'} for {d}.")
         return redirect(request.path + f"?date={d.isoformat()}")
 
-    # --------------------------
-    # GET (or post redirect): show windows + slots
-    # --------------------------
     windows = DoctorAvailability.objects.filter(doctor=doctor).order_by("date", "start_time")
     available_slots = get_available_slots_for_doctor(doctor, selected_date) if selected_date else []
 
     return render(
         request, "core/doctor_schedule.html",
         {"windows": windows, "selected_date": selected_date, "available_slots": available_slots},
+    )
+
+
+# ==============================================================
+#  DOCTOR SEARCH & DISCOVERY (STEP 4)
+# ==============================================================
+def doctor_search_view(request):
+    q = (request.GET.get("q") or "").strip()
+    specialization = (request.GET.get("specialization") or "").strip()
+    city = (request.GET.get("city") or "").strip()
+
+    doctors = (
+        User.objects.filter(role="doctor", is_active=True)
+        .select_related("doctor_profile")
+        .order_by("doctor_profile__full_name", "email")
+    )
+
+    if q:
+        doctors = doctors.filter(
+            Q(doctor_profile__full_name__icontains=q)
+            | Q(email__icontains=q)
+            | Q(doctor_profile__clinic_name__icontains=q)
+        )
+
+    if specialization:
+        doctors = doctors.filter(doctor_profile__specialization__icontains=specialization)
+
+    if city:
+        doctors = doctors.filter(doctor_profile__clinic_address__icontains=city)
+
+    return render(
+        request,
+        "core/doctor_search.html",
+        {
+            "doctors": doctors,
+            "q": q,
+            "specialization": specialization,
+            "city": city,
+        },
+    )
+
+
+def doctor_detail_view(request, doctor_id):
+    doctor = get_object_or_404(
+        User.objects.select_related("doctor_profile"),
+        id=doctor_id,
+        role="doctor",
+        is_active=True,
+    )
+    profile = getattr(doctor, "doctor_profile", None)
+
+    return render(
+        request,
+        "core/doctor_detail.html",
+        {
+            "doctor": doctor,
+            "profile": profile,
+        },
     )

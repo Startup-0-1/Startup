@@ -1,9 +1,5 @@
-
-
-
-
-
 {% extends "core/base.html" %}
+{% load tz %}
 
 {% block content %}
 <h2>My Appointments</h2>
@@ -20,16 +16,23 @@
             <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Actions</th>
         </tr>
     </thead>
+
     <tbody>
         {% if appointment_blocks %}
             {% for block in appointment_blocks %}
                 <tr>
+                    <!-- DATE (MM/DD/YYYY) -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.start|date:"M j, Y" }}
+                        {{ block.start|localtime|date:"m/d/Y" }}
                     </td>
+
+                    <!-- TIME RANGE IN LOCAL TZ -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.start|time:"g:i a" }} – {{ block.end|time:"g:i a" }}
+                        {{ block.start|localtime|time:"g:i a" }} – 
+                        {{ block.end|localtime|time:"g:i a" }}
                     </td>
+
+                    <!-- DOCTOR NAME -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {% if block.doctor.doctor_profile %}
                             {{ block.doctor.doctor_profile.full_name }}
@@ -37,14 +40,19 @@
                             {{ block.doctor.get_display_name }}
                         {% endif %}
                     </td>
+
+                    <!-- STATUS + RESCHEDULE ORIGIN -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {{ block.status|title }}
                         {% if block.rescheduled_from %}
                             <div style="font-size:0.8rem; color:#6b7280;">
-                                (Rescheduled from {{ block.rescheduled_from.scheduled_for|date:"M j, Y g:i a" }})
+                                (Rescheduled from 
+                                {{ block.rescheduled_from.scheduled_for|localtime|date:"m/d/Y g:i a" }})
                             </div>
                         {% endif %}
                     </td>
+
+                    <!-- PAYMENT STATUS -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {% if block.payment and block.payment.status == "paid" %}
                             Yes
@@ -52,11 +60,14 @@
                             No
                         {% endif %}
                     </td>
+
+                    <!-- REASON -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
                         {{ block.reason|default:"—" }}
                     </td>
+
+                    <!-- ACTIONS -->
                     <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {# Only allow reschedule for future, non-cancelled, non-completed blocks #}
                         {% if block.start > now and block.status != "cancelled" and block.status != "completed" %}
                             <a
                               href="{% url 'patient-appointment-reschedule' %}?doctor_id={{ block.doctor.id }}&start={{ block.start|date:'Y-m-d\\TH:i' }}&end={{ block.end|date:'Y-m-d\\TH:i' }}"
@@ -80,4 +91,5 @@
         {% endif %}
     </tbody>
 </table>
+
 {% endblock %}

@@ -110,7 +110,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # ----------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "America/New_York"
+TIME_ZONE = "UTC"   # keep or set this to UTC for clean server-side time
+
+TIMEZONE_CHOICES = [
+    ("UTC", "UTC"),
+    ("America/New_York", "US Eastern (New York)"),
+    ("Europe/London", "UK (London)"),
+    ("Asia/Kolkata", "India Standard Time (IST)"),
+]
+
 USE_I18N = True
 USE_TZ = True
 

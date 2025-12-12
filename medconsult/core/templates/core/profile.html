@@ -1,10 +1,15 @@
 {% extends "core/base.html" %}
+{% load tz %}
 
 {% block content %}
 <h2>Profile</h2>
 <p>View and update your account details.</p>
 
+<!-- ===================================================== -->
+<!-- BASIC PROFILE INFORMATION -->
+<!-- ===================================================== -->
 <h3>Basic Information</h3>
+
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="update_profile">
@@ -21,8 +26,13 @@
         </div>
 
         <div class="field">
-            <label>Date of Birth</label>
-            <input type="text" name="date_of_birth" value="{{ patient_profile.date_of_birth }}" placeholder="YYYY-MM-DD or as stored">
+            <label>Date of Birth (MM/DD/YYYY)</label>
+            <input type="text" id="dob_input" name="date_of_birth"
+                   value="{{ patient_profile.date_of_birth }}"
+                   placeholder="MM/DD/YYYY">
+            <small style="font-size:0.8rem; color:#6b7280;">
+                You may type 06271992 and it will auto-format.
+            </small>
         </div>
 
         <div class="field">
@@ -52,7 +62,8 @@
 
         <div class="field">
             <label>Insurance Policy Number</label>
-            <input type="text" name="insurance_policy_number" value="{{ patient_profile.insurance_policy_number }}">
+            <input type="text" name="insurance_policy_number"
+                   value="{{ patient_profile.insurance_policy_number }}">
         </div>
     {% endif %}
 
@@ -83,46 +94,110 @@
         </div>
     {% endif %}
 
+    <!-- ===================================================== -->
+    <!-- TIMEZONE SELECTION -->
+    <!-- ===================================================== -->
+    <div class="field">
+        <label>Your Timezone</label>
+        <select name="timezone" required>
+            {% for tz in timezones %}
+                <option value="{{ tz }}" {% if tz == user_obj.timezone %}selected{% endif %}>
+                    {{ tz }}
+                </option>
+            {% endfor %}
+        </select>
+        <small style="font-size:0.8rem; color:#6b7280;">
+            Used to show appointments in your local time.
+        </small>
+    </div>
+
     <button type="submit" class="button button-primary">Save Profile</button>
 </form>
 
 <hr style="margin:1.5rem 0;">
 
+
+<!-- ===================================================== -->
+<!-- CHANGE PASSWORD -->
+<!-- ===================================================== -->
 <h3>Change Password</h3>
+
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="change_password">
+
     <div class="field">
         <label>Current Password</label>
         <input type="password" name="current_password" required>
     </div>
+
     <div class="field">
         <label>New Password</label>
         <input type="password" name="new_password1" required>
     </div>
+
     <div class="field">
         <label>Confirm New Password</label>
         <input type="password" name="new_password2" required>
     </div>
-    <button type="submit" class="button button-outline">Update Password</button>
+
+    <button type="submit" class="button button-outline">
+        Update Password
+    </button>
 </form>
 
 <hr style="margin:1.5rem 0;">
 
+
+<!-- ===================================================== -->
+<!-- PROFILE IMAGE -->
+<!-- ===================================================== -->
 <h3>Profile Image</h3>
+
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="action" value="upload_image">
+
     <div class="field">
         <label>Upload Image (JPG / PNG)</label>
         <input type="file" name="profile_image" accept="image/jpeg,image/png">
     </div>
+
     <button type="submit" class="button button-outline">Upload Image</button>
 </form>
 
 {% if user_obj.profile_image %}
     <p style="margin-top:1rem;">Current image:</p>
-    <img src="{{ user_obj.profile_image.url }}" alt="Profile image"
+    <img src="{{ user_obj.profile_image.url }}"
+         alt="Profile image"
          style="width:80px;height:80px;border-radius:999px;object-fit:cover;">
 {% endif %}
+
+<!-- ===================================================== -->
+<!-- DOB AUTO-FORMAT SCRIPT -->
+<!-- ===================================================== -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dobInput = document.getElementById("dob_input");
+    if (!dobInput) return;
+
+    dobInput.addEventListener("blur", function () {
+        let v = dobInput.value.trim();
+        if (!v) return;
+
+        const digits = v.replace(/\D/g, '');
+        if (digits.length === 8) {
+            const mm = digits.slice(0,2);
+            const dd = digits.slice(2,4);
+            const yyyy = digits.slice(4);
+
+            if (parseInt(mm) >= 1 && parseInt(mm) <= 12 &&
+                parseInt(dd) >= 1 && parseInt(dd) <= 31) {
+                dobInput.value = `${mm}/${dd}/${yyyy}`;
+            }
+        }
+    });
+});
+</script>
+
 {% endblock %}

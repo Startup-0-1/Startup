@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tz %}
 
 {% block content %}
 <h2>Patient Sign Up</h2>
@@ -6,14 +7,17 @@
 
 <form method="post" style="margin-top:1rem;">
     {% csrf_token %}
+
     <div class="field">
         <label>Email</label>
         <input type="email" name="email" required>
     </div>
+
     <div class="field">
         <label>Password</label>
         <input type="password" name="password" required>
     </div>
+
     <div class="field">
         <label>Confirm Password</label>
         <input type="password" name="password_confirm" required>
@@ -23,54 +27,102 @@
         <label>Full Name</label>
         <input type="text" name="full_name" required>
     </div>
+
     <div class="field">
         <label>Date of Birth (MM/DD/YYYY)</label>
-        <input type="text" name="date_of_birth" placeholder="06/27/1992" required>
+        <input type="text" name="date_of_birth" id="dob_input" placeholder="06/27/1992" required>
         <small style="font-size:0.8rem; color:#6b7280;">
-            You can also type 06271992 and it will auto-format.
+            You can also type <strong>06271992</strong> and it will auto-format to <strong>06/27/1992</strong>.
         </small>
     </div>
+
     <div class="field">
         <label>Gender</label>
         <input type="text" name="gender" required>
     </div>
+
     <div class="field">
         <label>Contact Number</label>
         <input type="text" name="contact_number" required>
     </div>
+
     <div class="field">
         <label>Address</label>
         <textarea name="address" rows="2" required></textarea>
     </div>
+
     <div class="field">
         <label>Emergency Contact (optional)</label>
         <input type="text" name="emergency_contact">
     </div>
+
     <div class="field">
         <label>Insurance Provider (optional)</label>
         <input type="text" name="insurance_provider">
     </div>
+
     <div class="field">
         <label>Insurance Policy Number (optional)</label>
         <input type="text" name="insurance_policy_number">
     </div>
 
+    {# ====================================== #}
+    {# USER TIMEZONE SELECTION (RECOMMENDED) #}
+    {# ====================================== #}
+
+    <div class="field">
+        <label>Your Timezone</label>
+        <select name="timezone" required>
+            <option value="">-- Select your timezone --</option>
+            {% for tz_name in timezones %}
+                <option value="{{ tz_name }}">
+                    {{ tz_name }}
+                </option>
+            {% endfor %}
+        </select>
+        <small style="font-size:0.8rem; color:#6b7280;">
+            This ensures doctor availability shows in <strong>your local time</strong>.
+        </small>
+    </div>
+    <div class="field">
+        <label>Time Zone</label>
+        <select name="timezone" required>
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">US Eastern (New York)</option>
+            <option value="Europe/London">UK (London)</option>
+            <option value="Asia/Kolkata">India Standard Time (IST)</option>
+        </select>
+        <small style="font-size:0.8rem; color:#6b7280;">
+            This controls how your appointments and schedules are shown to you.
+        </small>
+    </div>
     <button type="submit" class="button button-primary">Create Patient Account</button>
 </form>
+
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const dobInput = document.querySelector('input[name="date_of_birth"]');
+    const dobInput = document.getElementById("dob_input");
     if (!dobInput) return;
 
     dobInput.addEventListener('blur', function () {
         let v = dobInput.value.trim();
         if (!v) return;
+
+        // Remove non-digits
         const digits = v.replace(/\D/g, '');
+
+        // Auto-format MMDDYYYY → MM/DD/YYYY
         if (digits.length === 8) {
             const mm = digits.slice(0, 2);
             const dd = digits.slice(2, 4);
             const yyyy = digits.slice(4);
-            dobInput.value = `${mm}/${dd}/${yyyy}`;
+
+            // Light validation: prevent impossible months/days
+            if (parseInt(mm) >= 1 && parseInt(mm) <= 12 &&
+                parseInt(dd) >= 1 && parseInt(dd) <= 31) {
+                dobInput.value = `${mm}/${dd}/${yyyy}`;
+            }
         }
     });
 });

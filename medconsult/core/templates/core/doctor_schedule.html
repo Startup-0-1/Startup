@@ -1,8 +1,14 @@
 {% extends "core/base.html" %}
+{% load tz %}
 
 {% block content %}
 <h2>My Schedule</h2>
-<p>Set your availability. Patients can book 30-minute slots within these windows.</p>
+<p>
+    Set your availability. Patients can book 30-minute slots within these windows.
+    <span style="color:#6b7280; font-size:0.9rem;">
+        (Times shown in your current account timezone.)
+    </span>
+</p>
 
 {# 1) Pick a date to inspect existing 30-min slots #}
 <form method="get" style="margin-top:1rem; margin-bottom:1rem;">
@@ -31,7 +37,6 @@
     <div class="field">
         <label>Open Time</label>
         <input type="time" name="start_time" required>
-        {# Browser will show numeric hours/mins with AM/PM or 24h depending on locale #}
     </div>
 
     <div class="field">
@@ -46,7 +51,7 @@
 
 {# 3) For the selected date, show all future 30-min free slots with delete buttons #}
 {% if selected_date %}
-    <h3>30-minute slots on {{ selected_date }}</h3>
+    <h3>30-minute slots on {{ selected_date|date:"m/d/Y" }}</h3>
 
     {% if available_slots %}
         <table style="width:100%; border-collapse:collapse; margin-top:0.5rem;">
@@ -57,10 +62,10 @@
             </tr>
             </thead>
             <tbody>
-            {% for slot in available_slots %}
+            {% for start_dt, end_dt in available_slots %}
                 <tr>
                     <td style="padding:0.4rem;">
-                        {{ slot.0|date:"H:i" }} – {{ slot.1|date:"H:i" }}
+                        {{ start_dt|localtime|date:"g:i A" }} – {{ end_dt|localtime|date:"g:i A" }}
                     </td>
                     <td style="padding:0.4rem;">
                         <form method="post" style="display:inline;">
@@ -69,7 +74,7 @@
                             <input type="hidden" name="selected_date"
                                    value="{{ selected_date|date:'Y-m-d' }}">
                             <input type="hidden" name="slot_start"
-                                   value="{{ slot.0|date:'Y-m-d\\TH:i' }}">
+                                   value="{{ start_dt|localtime|date:'Y-m-d\\TH:i' }}">
                             <button type="submit" class="button button-outline">
                                 Delete Slot
                             </button>
@@ -100,9 +105,9 @@
         <tbody>
         {% for w in windows %}
             <tr>
-                <td style="padding:0.4rem;">{{ w.date }}</td>
-                <td style="padding:0.4rem;">{{ w.start_time }}</td>
-                <td style="padding:0.4rem;">{{ w.end_time }}</td>
+                <td style="padding:0.4rem;">{{ w.date|date:"m/d/Y" }}</td>
+                <td style="padding:0.4rem;">{{ w.start_time|time:"g:i A" }}</td>
+                <td style="padding:0.4rem;">{{ w.end_time|time:"g:i A" }}</td>
             </tr>
         {% endfor %}
         </tbody>

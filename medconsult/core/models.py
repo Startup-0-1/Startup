@@ -9,6 +9,7 @@ from django.contrib.auth.models import (
 from django.db import models
 from django.core.exceptions import ValidationError 
 
+from django.conf import settings 
 
 # ==========================
 # USER & AUTH MODELS
@@ -61,6 +62,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=(("light", "Light"), ("dark", "Dark")),
         default="light",
     )
+    timezone = models.CharField(
+        max_length=50,
+        default=getattr(settings, "TIME_ZONE", "UTC"),
+        help_text="IANA timezone name, e.g. 'Europe/London' or 'Asia/Kolkata'.",
+    )
+
     location_tracking_enabled = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)
@@ -70,6 +77,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+
 
     def get_display_name(self):
         """

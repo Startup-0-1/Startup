@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load tz %}
 
 {% block content %}
 <h2>Request an Appointment</h2>
@@ -12,7 +13,8 @@
             <option value="">-- Select a doctor --</option>
             {% for d in doctors %}
                 {% with prof=d.doctor_profile %}
-                    <option value="{{ d.id }}" {% if selected_doctor and d.id == selected_doctor.id %}selected{% endif %}>
+                    <option value="{{ d.id }}"
+                        {% if selected_doctor and d.id == selected_doctor.id %}selected{% endif %}>
                         {% if prof %}
                             {{ prof.full_name }}
                             {% if prof.specialization %}
@@ -29,7 +31,9 @@
 
     <div class="field">
         <label for="id_date">Date</label>
-        <input type="date" id="id_date" name="date"
+        <input type="date"
+               id="id_date"
+               name="date"
                value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}"
                required>
     </div>
@@ -38,6 +42,7 @@
         Show Available Slots
     </button>
 </form>
+
 
 {% if selected_doctor and selected_date %}
     <h3>
@@ -49,7 +54,7 @@
                 {{ selected_doctor.email }}
             {% endif %}
         {% endwith %}
-        on {{ selected_date }}
+        on {{ selected_date|date:"m/d/Y" }}
     </h3>
 
     {% if available_slots %}
@@ -64,16 +69,21 @@
 
             <div class="field">
                 <label>Select time slots</label>
+
                 <div class="slot-grid">
                     {% for start, end in available_slots %}
                         <label class="slot-card">
-                            <input type="checkbox" name="slot_start"
-                                value="{{ start|date:'Y-m-d\\TH:i' }}">
-                            <span>{{ start|date:"g:i A" }} – {{ end|date:"g:i A" }}</span>
+                            <input type="checkbox"
+                                   name="slot_start"
+                                   value="{{ start|utc|date:'Y-m-d\\TH:i' }}">
+                            <span>
+                                {{ start|localtime|date:"g:i A" }} –
+                                {{ end|localtime|date:"g:i A" }}
+                            </span>
                         </label>
                     {% endfor %}
                 </div>
-            </div>
+
                 <small style="font-size:0.8rem; color:#6b7280;">
                     Minimum: 1 slot. You may choose multiple consecutive slots for longer sessions.
                 </small>
@@ -88,10 +98,12 @@
                 Confirm Appointment
             </button>
         </form>
+
     {% else %}
         <p style="margin-top:1rem;">
             No available 30-minute slots for this doctor on this date.
         </p>
     {% endif %}
 {% endif %}
+
 {% endblock %}
