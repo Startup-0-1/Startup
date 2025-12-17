@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}MedConsult{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    {% include "ui/_vendor.html" %}
+
+    <div class="min-h-screen flex">
+      {% include "ui/partials/sidebar.html" %}
+
+      <div class="flex-1">
+        {% include "ui/partials/navbar_app.html" %}
+
+        <main class="max-w-6xl mx-auto px-4 py-8">
+          {% include "ui/partials/messages.html" %}
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

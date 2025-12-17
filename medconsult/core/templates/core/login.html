@@ -1,25 +1,75 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_public.html" %}
+
+{% block title %}Log In — MedConsult{% endblock %}
 
 {% block content %}
-<h2>Log In</h2>
-<p>Use your email and password to sign in.</p>
+<div class="max-w-md mx-auto">
+  <div class="rounded-2xl bg-white border border-slate-200 shadow-sm">
+    <div class="p-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <p class="text-sm text-slate-600 mt-1">
+        Sign in to manage your appointments and care.
+      </p>
 
-<form method="post" style="margin-top:1rem;">
-    {% csrf_token %}
-    <div class="field">
-        <label for="id_email">Email</label>
-        <input type="email" name="email" id="id_email" required>
-    </div>
-    <div class="field">
-        <label for="id_password">Password</label>
-        <input type="password" name="password" id="id_password" required>
-    </div>
-    <button type="submit" class="button button-primary">Log In</button>
-</form>
+      <form method="post" class="mt-6 space-y-4">
+        {% csrf_token %}
 
-<p style="margin-top:1rem; font-size:0.9rem;">
-    New here? Sign up as
-    <a href="{% url 'signup-patient-page' %}">Patient</a> or
-    <a href="{% url 'signup-doctor-page' %}">Doctor</a>.
-</p>
+        {% if messages %}
+          {% for message in messages %}
+            <div class="rounded-xl border px-4 py-3 text-sm
+              {% if message.tags == 'error' %}
+                bg-rose-50 border-rose-200 text-rose-900
+              {% else %}
+                bg-slate-50 border-slate-200 text-slate-900
+              {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <div>
+          <label for="id_email" class="block text-sm font-medium text-slate-700 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
+            name="email"
+            id="id_email"
+            required
+            class="w-full rounded-xl border border-slate-200 px-3 py-2
+                   focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+        </div>
+
+        <div>
+          <label for="id_password" class="block text-sm font-medium text-slate-700 mb-1">
+            Password
+          </label>
+          <input
+            type="password"
+            name="password"
+            id="id_password"
+            required
+            class="w-full rounded-xl border border-slate-200 px-3 py-2
+                   focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+        </div>
+
+        <button
+          type="submit"
+          class="w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium
+                 hover:bg-slate-800 transition">
+          Log in
+        </button>
+      </form>
+
+      <div class="mt-6 text-sm text-slate-600 text-center">
+        New here?
+        <a class="underline" href="{% url 'signup-patient-page' %}">Sign up as Patient</a>
+        or
+        <a class="underline" href="{% url 'signup-doctor-page' %}">Doctor</a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

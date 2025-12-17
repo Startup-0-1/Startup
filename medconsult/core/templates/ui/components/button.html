@@ -1,0 +1,11 @@
+{# Usage: {% include "ui/components/button.html" with label="Save" variant="primary" type="submit" %} #}
+{% with v=variant|default:"primary" %}
+<button
+  {% if type %}type="{{ type }}"{% else %}type="button"{% endif %}
+  class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium
+  {% if v == 'primary' %} bg-slate-900 text-white hover:bg-slate-800
+  {% elif v == 'danger' %} bg-rose-600 text-white hover:bg-rose-500
+  {% else %} bg-white border border-slate-200 hover:bg-slate-50 {% endif %}">
+  {{ label }}
+</button>
+{% endwith %}

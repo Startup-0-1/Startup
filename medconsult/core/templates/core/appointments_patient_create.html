@@ -1,109 +1,127 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
 {% load tz %}
 
+{% block title %}Request an Appointment — MedConsult{% endblock %}
+
 {% block content %}
-<h2>Request an Appointment</h2>
-<p>Select a doctor, choose a date, then pick one or more 30-minute slots.</p>
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Request an Appointment</h1>
+    <p class="text-sm text-slate-600 mt-1">Select a doctor, choose a date, then pick one or more 30-minute slots.</p>
+  </div>
 
-{# Step 1: doctor + date selection (GET) #}
-<form method="get" style="margin-top:1rem; margin-bottom:1.5rem;">
-    <div class="field">
-        <label for="id_doctor">Doctor</label>
-        <select name="doctor_id" id="id_doctor" required>
-            <option value="">-- Select a doctor --</option>
-            {% for d in doctors %}
-                {% with prof=d.doctor_profile %}
-                    <option value="{{ d.id }}"
-                        {% if selected_doctor and d.id == selected_doctor.id %}selected{% endif %}>
-                        {% if prof %}
-                            {{ prof.full_name }}
-                            {% if prof.specialization %}
-                                ({{ prof.specialization }})
-                            {% endif %}
-                        {% else %}
-                            {{ d.email }}
-                        {% endif %}
-                    </option>
-                {% endwith %}
-            {% endfor %}
+  <!-- Step 1: doctor + date selection (GET) -->
+  <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+    <form method="get" class="grid md:grid-cols-2 gap-4 items-end">
+      <div>
+        <label for="id_doctor" class="block text-sm font-medium text-slate-700 mb-1">Doctor</label>
+        <select name="doctor_id" id="id_doctor" required
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
+          <option value="">-- Select a doctor --</option>
+          {% for d in doctors %}
+            {% with prof=d.doctor_profile %}
+              <option value="{{ d.id }}"
+                {% if selected_doctor and d.id == selected_doctor.id %}selected{% endif %}>
+                {% if prof %}
+                  {{ prof.full_name }}{% if prof.specialization %} ({{ prof.specialization }}){% endif %}
+                {% else %}
+                  {{ d.email }}
+                {% endif %}
+              </option>
+            {% endwith %}
+          {% endfor %}
         </select>
-    </div>
+      </div>
 
-    <div class="field">
-        <label for="id_date">Date</label>
+      <div>
+        <label for="id_date" class="block text-sm font-medium text-slate-700 mb-1">Date</label>
         <input type="date"
                id="id_date"
                name="date"
                value="{% if selected_date %}{{ selected_date|date:'Y-m-d' }}{% endif %}"
-               required>
-    </div>
+               required
+               class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+      </div>
 
-    <button type="submit" class="button button-primary">
-        Show Available Slots
-    </button>
-</form>
+      <div class="md:col-span-2 flex gap-3">
+        <button type="submit"
+          class="rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Show Available Slots
+        </button>
 
+        {% if selected_doctor or selected_date %}
+          <a href="{% url 'patient-appointment-create' %}"
+            class="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Reset
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
 
-{% if selected_doctor and selected_date %}
-    <h3>
-        Available slots for
-        {% with prof=selected_doctor.doctor_profile %}
-            {% if prof %}
-                {{ prof.full_name }}
-            {% else %}
-                {{ selected_doctor.email }}
-            {% endif %}
-        {% endwith %}
-        on {{ selected_date|date:"m/d/Y" }}
-    </h3>
+  {% if selected_doctor and selected_date %}
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-4">
+      <div>
+        <h2 class="text-lg font-semibold">
+          Available slots for
+          {% with prof=selected_doctor.doctor_profile %}
+            {% if prof %}{{ prof.full_name }}{% else %}{{ selected_doctor.email }}{% endif %}
+          {% endwith %}
+          on {{ selected_date|date:"m/d/Y" }}
+        </h2>
 
-    {% if available_slots %}
-        <p style="font-size:0.9rem; color:#4b5563; margin-top:0.25rem;">
-            You can select <strong>one or more</strong> 30-minute slots.
-        </p>
-
-        <form method="post" style="margin-top:1rem;">
-            {% csrf_token %}
-            <input type="hidden" name="doctor_id" value="{{ selected_doctor.id }}">
-            <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
-
-            <div class="field">
-                <label>Select time slots</label>
-
-                <div class="slot-grid">
-                    {% for start, end in available_slots %}
-                        <label class="slot-card">
-                            <input type="checkbox"
-                                   name="slot_start"
-                                   value="{{ start|utc|date:'Y-m-d\\TH:i' }}">
-                            <span>
-                                {{ start|localtime|date:"g:i A" }} –
-                                {{ end|localtime|date:"g:i A" }}
-                            </span>
-                        </label>
-                    {% endfor %}
-                </div>
-
-                <small style="font-size:0.8rem; color:#6b7280;">
-                    Minimum: 1 slot. You may choose multiple consecutive slots for longer sessions.
-                </small>
-            </div>
-
-            <div class="field">
-                <label for="id_reason">Reason / Notes (optional)</label>
-                <textarea id="id_reason" name="reason" rows="3"></textarea>
-            </div>
-
-            <button type="submit" class="button button-primary">
-                Confirm Appointment
-            </button>
-        </form>
-
-    {% else %}
-        <p style="margin-top:1rem;">
+        {% if available_slots %}
+          <p class="text-sm text-slate-600 mt-1">
+            You can select <strong>one or more</strong> 30-minute slots (choose consecutive ones for longer sessions).
+          </p>
+        {% else %}
+          <p class="text-sm text-slate-600 mt-1">
             No available 30-minute slots for this doctor on this date.
-        </p>
-    {% endif %}
-{% endif %}
+          </p>
+        {% endif %}
+      </div>
 
+      {% if available_slots %}
+        <form method="post" class="space-y-6">
+          {% csrf_token %}
+          <input type="hidden" name="doctor_id" value="{{ selected_doctor.id }}">
+          <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Select time slots</label>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {% for start, end in available_slots %}
+                <label class="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 hover:bg-slate-50 transition flex items-start gap-3">
+                  <input type="checkbox"
+                         name="slot_start"
+                         value="{{ start|utc|date:'Y-m-d\\TH:i' }}"
+                         class="mt-1">
+                  <span class="text-sm text-slate-800">
+                    {{ start|localtime|date:"g:i A" }} – {{ end|localtime|date:"g:i A" }}
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+
+            <p class="text-xs text-slate-500 mt-2">
+              Minimum: 1 slot. You may choose multiple consecutive slots for longer sessions.
+            </p>
+          </div>
+
+          <div>
+            <label for="id_reason" class="block text-sm font-medium text-slate-700 mb-1">Reason / Notes (optional)</label>
+            <textarea id="id_reason" name="reason" rows="3"
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300"></textarea>
+          </div>
+
+          <button type="submit"
+            class="w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:bg-slate-800 transition">
+            Confirm Appointment
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

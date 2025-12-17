@@ -1,133 +1,147 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
 {% load tz %}
 
+{% block title %}My Patients & Appointments — MedConsult{% endblock %}
+
 {% block content %}
-<h2>My Patients & Appointments</h2>
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">My Patients & Appointments</h1>
+    <p class="text-sm text-slate-600 mt-1">Review, approve, reject, complete, or cancel appointments.</p>
+  </div>
 
-<table style="width:100%; border-collapse:collapse; margin-top:1rem;">
-    <thead>
-        <tr style="background:#f3f4f6;">
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Date</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Time</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Patient</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Status</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Paid?</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Reason</th>
-            <th style="text-align:left; padding:0.5rem; border-bottom:1px solid #e5e7eb;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% if appointment_blocks %}
-            {% for block in appointment_blocks %}
-                <tr valign="top">
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.start|localtime|date:"M j, Y" }}
-                    </td>
+  {% if appointment_blocks %}
+    <div class="overflow-x-auto rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="text-left font-medium px-4 py-3">Date</th>
+            <th class="text-left font-medium px-4 py-3">Time</th>
+            <th class="text-left font-medium px-4 py-3">Patient</th>
+            <th class="text-left font-medium px-4 py-3">Status</th>
+            <th class="text-left font-medium px-4 py-3">Paid?</th>
+            <th class="text-left font-medium px-4 py-3">Reason</th>
+            <th class="text-left font-medium px-4 py-3">Actions</th>
+          </tr>
+        </thead>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.start|localtime|time:"g:i a" }} – {{ block.end|localtime|time:"g:i a" }}
-                    </td>
+        <tbody class="divide-y divide-slate-200">
+          {% for block in appointment_blocks %}
+            <tr class="align-top hover:bg-slate-50">
+              <td class="px-4 py-3 whitespace-nowrap">
+                {{ block.start|localtime|date:"M j, Y" }}
+              </td>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {% if block.patient.patient_profile %}
-                            {{ block.patient.patient_profile.full_name }}
-                        {% else %}
-                            {{ block.patient.get_display_name }}
-                        {% endif %}
-                    </td>
+              <td class="px-4 py-3 whitespace-nowrap">
+                {{ block.start|localtime|time:"g:i a" }} – {{ block.end|localtime|time:"g:i a" }}
+              </td>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.status|title }}
-                        {% if block.rescheduled_from %}
-                            <div style="font-size:0.8rem; color:#6b7280;">
-                                (Rescheduled from {{ block.rescheduled_from.scheduled_for|localtime|date:"M j, Y g:i a" }})
-                            </div>
-                        {% endif %}
-                    </td>
+              <td class="px-4 py-3">
+                {% if block.patient.patient_profile %}
+                  <div class="font-medium text-slate-900">{{ block.patient.patient_profile.full_name }}</div>
+                {% else %}
+                  <div class="font-medium text-slate-900">{{ block.patient.get_display_name }}</div>
+                {% endif %}
+                <div class="text-xs text-slate-500">{{ block.patient.email }}</div>
+              </td>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {% if block.payment and block.payment.status == "paid" %}
-                            Yes
-                        {% else %}
-                            No
-                        {% endif %}
-                    </td>
+              <td class="px-4 py-3">
+                <div class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
+                  {% if block.status == 'completed' %} bg-emerald-50 text-emerald-800 border border-emerald-200
+                  {% elif block.status == 'cancelled' %} bg-rose-50 text-rose-800 border border-rose-200
+                  {% elif block.status == 'approved' %} bg-sky-50 text-sky-800 border border-sky-200
+                  {% elif block.status == 'rejected' %} bg-amber-50 text-amber-800 border border-amber-200
+                  {% else %} bg-slate-50 text-slate-800 border border-slate-200 {% endif %}">
+                  {{ block.status|title }}
+                </div>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
-                        {{ block.reason|default:"—" }}
-                    </td>
+                {% if block.rescheduled_from %}
+                  <div class="text-xs text-slate-500 mt-1">
+                    Rescheduled from {{ block.rescheduled_from.scheduled_for|localtime|date:"M j, Y g:i a" }}
+                  </div>
+                {% endif %}
+              </td>
 
-                    <td style="padding:0.5rem; border-bottom:1px solid #e5e7eb;">
+              <td class="px-4 py-3">
+                {% if block.payment and block.payment.status == "paid" %}
+                  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Yes
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-slate-50 text-slate-800 border border-slate-200">
+                    No
+                  </span>
+                {% endif %}
+              </td>
 
-                        {# Status update form #}
-                        <form method="post"
-                              action="{% url 'doctor-appointments-update' %}"
-                              style="margin-bottom:0.5rem;">
-                            {% csrf_token %}
-                            <input type="hidden" name="mode" value="set_status">
-                            {% for sid in block.slot_ids %}
-                                <input type="hidden" name="slot_ids" value="{{ sid }}">
-                            {% endfor %}
+              <td class="px-4 py-3">
+                {{ block.reason|default:"—" }}
+              </td>
 
-                            <div style="display:flex; gap:0.25rem; flex-wrap:wrap;">
-                                <button type="submit" name="new_status" value="approved"
-                                        class="button button-primary"
-                                        style="padding:0.25rem 0.6rem; font-size:0.8rem;">
-                                    Approve
-                                </button>
-                                <button type="submit" name="new_status" value="rejected"
-                                        class="button button-outline"
-                                        style="padding:0.25rem 0.6rem; font-size:0.8rem;">
-                                    Reject
-                                </button>
-                                <button type="submit" name="new_status" value="completed"
-                                        class="button button-outline"
-                                        style="padding:0.25rem 0.6rem; font-size:0.8rem;">
-                                    Mark Completed
-                                </button>
-                                <button type="submit" name="new_status" value="cancelled"
-                                        class="button button-outline"
-                                        style="padding:0.25rem 0.6rem; font-size:0.8rem;">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
+              <td class="px-4 py-3 space-y-3">
+                <!-- Status update form -->
+                <form method="post" action="{% url 'doctor-appointments-update' %}" class="space-y-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="mode" value="set_status">
+                  {% for sid in block.slot_ids %}
+                    <input type="hidden" name="slot_ids" value="{{ sid }}">
+                  {% endfor %}
 
-                        {# Cancel slots form #}
-                        <form method="post"
-                              action="{% url 'doctor-appointments-update' %}"
-                              style="margin-top:0.5rem;">
-                            {% csrf_token %}
-                            <input type="hidden" name="mode" value="cancel_slots">
+                  <div class="flex flex-wrap gap-2">
+                    <button type="submit" name="new_status" value="approved"
+                      class="rounded-xl bg-slate-900 text-white px-3 py-2 text-xs font-medium hover:bg-slate-800 transition">
+                      Approve
+                    </button>
 
-                            <div style="max-height:140px; overflow:auto; border:1px solid #e5e7eb;
-                                        padding:0.4rem; border-radius:0.5rem; margin-bottom:0.4rem;">
-                                {% for sr in block.slot_ranges %}
-                                    <div>
-                                        <label>
-                                            <input type="checkbox" name="slot_ids" value="{{ sr.id }}">
-                                            {{ sr.start|localtime|time:"g:i a" }} – {{ sr.end|localtime|time:"g:i a" }}
-                                        </label>
-                                    </div>
-                                {% endfor %}
-                            </div>
+                    <button type="submit" name="new_status" value="rejected"
+                      class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium hover:bg-slate-50 transition">
+                      Reject
+                    </button>
 
-                            <button type="submit" class="button button-outline"
-                                    style="padding:0.25rem 0.6rem; font-size:0.8rem;">
-                                Cancel selected slots
-                            </button>
-                        </form>
+                    <button type="submit" name="new_status" value="completed"
+                      class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium hover:bg-slate-50 transition">
+                      Mark Completed
+                    </button>
 
-                    </td>
-                </tr>
-            {% endfor %}
-        {% else %}
-            <tr>
-                <td colspan="7" style="padding:0.75rem; text-align:center; color:#6b7280;">
-                    No appointments yet.
-                </td>
+                    <button type="submit" name="new_status" value="cancelled"
+                      class="rounded-xl border border-rose-200 bg-rose-50 text-rose-900 px-3 py-2 text-xs font-medium hover:bg-rose-100 transition">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Cancel slots form -->
+                <form method="post" action="{% url 'doctor-appointments-update' %}" class="space-y-2">
+                  {% csrf_token %}
+                  <input type="hidden" name="mode" value="cancel_slots">
+
+                  <div class="max-h-40 overflow-auto rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                    {% for sr in block.slot_ranges %}
+                      <label class="flex items-start gap-2 text-xs text-slate-700">
+                        <input type="checkbox" name="slot_ids" value="{{ sr.id }}" class="mt-1">
+                        <span>
+                          {{ sr.start|localtime|time:"g:i a" }} – {{ sr.end|localtime|time:"g:i a" }}
+                        </span>
+                      </label>
+                    {% endfor %}
+                  </div>
+
+                  <button type="submit"
+                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium hover:bg-slate-50 transition">
+                    Cancel selected slots
+                  </button>
+                </form>
+              </td>
             </tr>
-        {% endif %}
-    </tbody>
-</table>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-8 text-center">
+      <h3 class="text-lg font-semibold">No appointments yet</h3>
+      <p class="text-sm text-slate-600 mt-2">When patients book, they’ll appear here.</p>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

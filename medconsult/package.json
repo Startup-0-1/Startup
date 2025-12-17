@@ -1,0 +1,13 @@
+{
+  "name": "medconsult-ui",
+  "private": true,
+  "scripts": {
+    "dev": "tailwindcss -i ./ui_src/tailwind_input.css -o ./core/static/css/app.css --watch",
+    "build": "tailwindcss -i ./ui_src/tailwind_input.css -o ./core/static/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49"
+  }
+}

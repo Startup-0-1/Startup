@@ -1,0 +1,15 @@
+<nav class="bg-white border-b">
+  <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="{% url 'welcome' %}" class="font-semibold tracking-tight text-lg">MedConsult</a>
+
+    <div class="flex items-center gap-3">
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'welcome' %}" class="text-sm underline">Dashboard</a>
+        <a href="{% url 'logout-view' %}" class="text-sm underline">Logout</a>
+      {% else %}
+        <a href="{% url 'login-page' %}" class="text-sm underline">Login</a>
+        <a href="{% url 'signup-patient-page' %}" class="text-sm underline">Sign up</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>

@@ -1,53 +1,78 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
+
+{% block title %}Settings — MedConsult{% endblock %}
 
 {% block content %}
-<h2>Settings</h2>
-<p>Customize your experience.</p>
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+    <p class="text-sm text-slate-600 mt-1">Customize your experience.</p>
+  </div>
 
-<form method="post" style="margin-top:1rem;">
-    {% csrf_token %}
+  <div class="max-w-2xl">
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
 
-    <div class="field">
-        <label>Theme</label>
-        <select name="theme">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Theme</label>
+          <select name="theme"
+            class="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
             <option value="light" {% if current_theme == "light" %}selected{% endif %}>Light</option>
             <option value="dark" {% if current_theme == "dark" %}selected{% endif %}>Dark</option>
-        </select>
-    </div>
+          </select>
+          <p class="text-xs text-slate-500 mt-1">UI theme selection (feature toggle).</p>
+        </div>
 
-    <div class="field">
-        <label>
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <label class="flex items-start gap-3 text-sm text-slate-700">
             <input type="checkbox" name="location_tracking"
+                   class="mt-1"
                    {% if location_tracking_enabled %}checked{% endif %}>
-            Enable location-based features (future use)
-        </label>
-    </div>
+            <span>
+              <span class="font-medium text-slate-900">Enable location-based features</span>
+              <span class="block text-xs text-slate-500 mt-1">Future use (safe to leave off).</span>
+            </span>
+          </label>
+        </div>
 
-    <div class="field">
-        <label>Time Zone</label>
-        <select name="timezone">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Time Zone</label>
+          <select name="timezone"
+            class="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
             <option value="">-- Select Time Zone --</option>
+
             <option value="America/New_York" {% if current_tz == "America/New_York" %}selected{% endif %}>
-                United States (Eastern) – America/New_York
+              United States (Eastern) – America/New_York
             </option>
             <option value="America/Chicago" {% if current_tz == "America/Chicago" %}selected{% endif %}>
-                United States (Central) – America/Chicago
+              United States (Central) – America/Chicago
             </option>
             <option value="America/Denver" {% if current_tz == "America/Denver" %}selected{% endif %}>
-                United States (Mountain) – America/Denver
+              United States (Mountain) – America/Denver
             </option>
             <option value="America/Los_Angeles" {% if current_tz == "America/Los_Angeles" %}selected{% endif %}>
-                United States (Pacific) – America/Los_Angeles
+              United States (Pacific) – America/Los_Angeles
             </option>
             <option value="Europe/London" {% if current_tz == "Europe/London" %}selected{% endif %}>
-                UK – Europe/London
+              UK – Europe/London
             </option>
             <option value="Asia/Kolkata" {% if current_tz == "Asia/Kolkata" %}selected{% endif %}>
-                India – Asia/Kolkata
+              India – Asia/Kolkata
             </option>
-        </select>
-    </div>
+          </select>
 
-    <button type="submit" class="button button-primary">Save Settings</button>
-</form>
+          <p class="text-xs text-slate-500 mt-1">
+            Used to display appointments and schedules in your local time.
+          </p>
+        </div>
+
+        <button type="submit"
+          class="rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Save Settings
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

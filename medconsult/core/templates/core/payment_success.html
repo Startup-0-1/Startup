@@ -1,16 +1,36 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
+
+{% block title %}Payment Successful — MedConsult{% endblock %}
 
 {% block content %}
-<h2>Payment Successful</h2>
-<p>Thank you! Your payment has been processed.</p>
+<div class="max-w-2xl space-y-6">
+  <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+        <span class="text-emerald-700 font-bold">✓</span>
+      </div>
 
-<p>
-    Amount: <strong>${{ amount_dollars }} {{ payment.currency|upper }}</strong><br>
-    Status: <strong>{{ payment.status|upper }}</strong>
-</p>
+      <div class="flex-1">
+        <h1 class="text-2xl font-semibold tracking-tight">Payment successful</h1>
+        <p class="text-sm text-slate-600 mt-1">Thank you — your payment has been processed.</p>
 
+        <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <div><span class="text-slate-500">Amount:</span> <span class="font-semibold">${{ amount_dollars }} {{ payment.currency|upper }}</span></div>
+          <div class="mt-1"><span class="text-slate-500">Status:</span> <span class="font-semibold">{{ payment.status|upper }}</span></div>
+        </div>
 
-<p style="margin-top:1rem;">
-    <a href="{% url 'welcome' %}" class="button button-outline">Back to home</a>
-</p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="{% url 'patient-appointments' %}"
+             class="inline-flex items-center justify-center rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+            View my appointments
+          </a>
+          <a href="{% url 'welcome' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Back to home
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

@@ -1,63 +1,96 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
+
+{% block title %}Find a Doctor — MedConsult{% endblock %}
 
 {% block content %}
-<h2>Find a Doctor</h2>
-<p>Search by name, specialization, or city.</p>
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Find a Doctor</h1>
+    <p class="text-sm text-slate-600 mt-1">Search by name, specialization, or city.</p>
+  </div>
 
-<form method="get" style="margin: 1rem 0;">
-    <div class="field">
-        <label>Search (name, email, clinic)</label>
-        <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sharma, skin, Apollo">
-    </div>
-    <div class="field">
-        <label>Specialization</label>
-        <input type="text" name="specialization" value="{{ specialization }}" placeholder="e.g. Dermatology">
-    </div>
-    <div class="field">
-        <label>City / Area</label>
-        <input type="text" name="city" value="{{ city }}" placeholder="e.g. Mumbai, Indiranagar">
-    </div>
-    <button type="submit" class="button button-primary">Search</button>
-</form>
+  <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+    <form method="get" class="grid md:grid-cols-3 gap-4 items-end">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Search (name, email, clinic)</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="e.g. Sharma, skin, Apollo"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+      </div>
 
-{% if doctors %}
-    <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
-        <thead>
-            <tr>
-                <th>Doctor</th>
-                <th>Specialization</th>
-                <th>Clinic</th>
-                <th>Location</th>
-                <th></th>
-            </tr>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Specialization</label>
+        <input type="text" name="specialization" value="{{ specialization }}" placeholder="e.g. Dermatology"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">City / Area</label>
+        <input type="text" name="city" value="{{ city }}" placeholder="e.g. Mumbai, Indiranagar"
+          class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+      </div>
+
+      <div class="md:col-span-3 flex gap-3">
+        <button type="submit"
+          class="rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Search
+        </button>
+        <a href="{% url 'doctor-search' %}"
+          class="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+          Reset
+        </a>
+      </div>
+    </form>
+  </div>
+
+  {% if doctors %}
+    <div class="overflow-x-auto rounded-2xl bg-white border border-slate-200 shadow-sm">
+      <table class="min-w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600">
+          <tr>
+            <th class="text-left font-medium px-4 py-3">Doctor</th>
+            <th class="text-left font-medium px-4 py-3">Specialization</th>
+            <th class="text-left font-medium px-4 py-3">Clinic</th>
+            <th class="text-left font-medium px-4 py-3">Location</th>
+            <th class="px-4 py-3"></th>
+          </tr>
         </thead>
-        <tbody>
-        {% for d in doctors %}
+
+        <tbody class="divide-y divide-slate-200">
+          {% for d in doctors %}
             {% with p=d.doctor_profile %}
-            <tr>
-                <td>
-                    {{ p.full_name|default:d.email }}
-                </td>
-                <td>
-                    {{ p.specialization|default:"—" }}
-                </td>
-                <td>
-                    {{ p.clinic_name|default:"—" }}
-                </td>
-                <td>
-                    {{ p.clinic_address|default:"—" }}
-                </td>
-                <td>
-                    <a href="{% url 'doctor-detail' d.id %}" class="button button-outline">
-                        View Profile
-                    </a>
-                </td>
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3">
+                <div class="font-medium text-slate-900">{{ p.full_name|default:d.email }}</div>
+                <div class="text-xs text-slate-500">{{ d.email }}</div>
+              </td>
+
+              <td class="px-4 py-3">{{ p.specialization|default:"—" }}</td>
+              <td class="px-4 py-3">{{ p.clinic_name|default:"—" }}</td>
+              <td class="px-4 py-3">{{ p.clinic_address|default:"—" }}</td>
+
+              <td class="px-4 py-3 text-right">
+                <a href="{% url 'doctor-detail' d.id %}"
+                   class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+                  View Profile
+                </a>
+              </td>
             </tr>
             {% endwith %}
-        {% endfor %}
+          {% endfor %}
         </tbody>
-    </table>
-{% else %}
-    <p style="margin-top:1rem;">No doctors found. Try changing your filters.</p>
-{% endif %}
+      </table>
+    </div>
+  {% else %}
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-8 text-center">
+      <h3 class="text-lg font-semibold">No doctors found</h3>
+      <p class="text-sm text-slate-600 mt-2">Try changing your filters or clearing the search.</p>
+      <div class="mt-4">
+        <a href="{% url 'doctor-search' %}"
+           class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+          Reset search
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}
