@@ -1,203 +1,261 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_app.html" %}
 {% load tz %}
 
+{% block title %}Profile — MedConsult{% endblock %}
+
 {% block content %}
-<h2>Profile</h2>
-<p>View and update your account details.</p>
+<div class="space-y-10">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Profile</h1>
+    <p class="text-sm text-slate-600 mt-1">View and update your account details.</p>
+  </div>
 
-<!-- ===================================================== -->
-<!-- BASIC PROFILE INFORMATION -->
-<!-- ===================================================== -->
-<h3>Basic Information</h3>
-
-<form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="update_profile">
-
-    <div class="field">
-        <label>Email</label>
-        <input type="email" name="email" value="{{ user_obj.email }}" required>
+  <!-- ===================================================== -->
+  <!-- BASIC PROFILE INFORMATION -->
+  <!-- ===================================================== -->
+  <section class="space-y-4">
+    <div>
+      <h2 class="text-lg font-semibold">Basic Information</h2>
+      <p class="text-sm text-slate-600">Update your contact details and timezone.</p>
     </div>
 
-    {% if patient_profile %}
-        <div class="field">
-            <label>Full Name</label>
-            <input type="text" name="full_name" value="{{ patient_profile.full_name }}">
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_profile">
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input type="email" name="email" value="{{ user_obj.email }}" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Your Timezone</label>
+            <select name="timezone" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
+              {% for tz in timezones %}
+                <option value="{{ tz }}" {% if tz == user_obj.timezone %}selected{% endif %}>{{ tz }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-slate-500 mt-1">Used to show appointments in your local time.</p>
+          </div>
         </div>
 
-        <div class="field">
-            <label>Date of Birth (MM/DD/YYYY)</label>
-            <input type="text" id="dob_input" name="date_of_birth"
-                   value="{{ patient_profile.date_of_birth }}"
-                   placeholder="MM/DD/YYYY">
-            <small style="font-size:0.8rem; color:#6b7280;">
-                You may type 06271992 and it will auto-format.
-            </small>
-        </div>
+        {% if patient_profile %}
+          <div class="border-t pt-6">
+            <h3 class="text-sm font-semibold text-slate-900">Patient Details</h3>
 
-        <div class="field">
-            <label>Gender</label>
-            <input type="text" name="gender" value="{{ patient_profile.gender }}">
-        </div>
+            <div class="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <input type="text" name="full_name" value="{{ patient_profile.full_name }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-        <div class="field">
-            <label>Contact Number</label>
-            <input type="text" name="contact_number" value="{{ patient_profile.contact_number }}">
-        </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Date of Birth (MM/DD/YYYY)</label>
+                <input type="text" id="dob_input" name="date_of_birth"
+                       value="{{ patient_profile.date_of_birth }}"
+                       placeholder="MM/DD/YYYY"
+                       class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+                <p class="text-xs text-slate-500 mt-1">Tip: type 06271992 and it auto-formats.</p>
+              </div>
 
-        <div class="field">
-            <label>Address</label>
-            <textarea name="address" rows="2">{{ patient_profile.address }}</textarea>
-        </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+                <input type="text" name="gender" value="{{ patient_profile.gender }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-        <div class="field">
-            <label>Emergency Contact</label>
-            <input type="text" name="emergency_contact" value="{{ patient_profile.emergency_contact }}">
-        </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
+                <input type="text" name="contact_number" value="{{ patient_profile.contact_number }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-        <div class="field">
-            <label>Insurance Provider</label>
-            <input type="text" name="insurance_provider" value="{{ patient_profile.insurance_provider }}">
-        </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                <textarea name="address" rows="2"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">{{ patient_profile.address }}</textarea>
+              </div>
 
-        <div class="field">
-            <label>Insurance Policy Number</label>
-            <input type="text" name="insurance_policy_number"
-                   value="{{ patient_profile.insurance_policy_number }}">
-        </div>
-    {% endif %}
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Emergency Contact</label>
+                <input type="text" name="emergency_contact" value="{{ patient_profile.emergency_contact }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-    {% if doctor_profile %}
-        <div class="field">
-            <label>Full Name</label>
-            <input type="text" name="full_name" value="{{ doctor_profile.full_name }}">
-        </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Insurance Provider</label>
+                <input type="text" name="insurance_provider" value="{{ patient_profile.insurance_provider }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-        <div class="field">
-            <label>Specialization</label>
-            <input type="text" name="specialization" value="{{ doctor_profile.specialization }}">
-        </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Insurance Policy Number</label>
+                <input type="text" name="insurance_policy_number" value="{{ patient_profile.insurance_policy_number }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
+            </div>
+          </div>
+        {% endif %}
 
-        <div class="field">
-            <label>Contact Number</label>
-            <input type="text" name="contact_number" value="{{ doctor_profile.contact_number }}">
-        </div>
+        {% if doctor_profile %}
+          <div class="border-t pt-6">
+            <h3 class="text-sm font-semibold text-slate-900">Doctor Details</h3>
 
-        <div class="field">
-            <label>Clinic Name</label>
-            <input type="text" name="clinic_name" value="{{ doctor_profile.clinic_name }}">
-        </div>
+            <div class="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                <input type="text" name="full_name" value="{{ doctor_profile.full_name }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-        <div class="field">
-            <label>Clinic Address</label>
-            <textarea name="clinic_address" rows="2">{{ doctor_profile.clinic_address }}</textarea>
-        </div>
-    {% endif %}
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Specialization</label>
+                <input type="text" name="specialization" value="{{ doctor_profile.specialization }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
 
-    <!-- ===================================================== -->
-    <!-- TIMEZONE SELECTION -->
-    <!-- ===================================================== -->
-    <div class="field">
-        <label>Your Timezone</label>
-        <select name="timezone" required>
-            {% for tz in timezones %}
-                <option value="{{ tz }}" {% if tz == user_obj.timezone %}selected{% endif %}>
-                    {{ tz }}
-                </option>
-            {% endfor %}
-        </select>
-        <small style="font-size:0.8rem; color:#6b7280;">
-            Used to show appointments in your local time.
-        </small>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
+                <input type="text" name="contact_number" value="{{ doctor_profile.contact_number }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Clinic Name</label>
+                <input type="text" name="clinic_name" value="{{ doctor_profile.clinic_name }}"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Clinic Address</label>
+                <textarea name="clinic_address" rows="2"
+                  class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">{{ doctor_profile.clinic_address }}</textarea>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        <button type="submit"
+          class="rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Save Profile
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===================================================== -->
+  <!-- CHANGE PASSWORD -->
+  <!-- ===================================================== -->
+  <section class="space-y-4">
+    <div>
+      <h2 class="text-lg font-semibold">Change Password</h2>
+      <p class="text-sm text-slate-600">Update your password to keep your account secure.</p>
     </div>
 
-    <button type="submit" class="button button-primary">Save Profile</button>
-</form>
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_password">
 
-<hr style="margin:1.5rem 0;">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+            <input type="password" name="current_password" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
 
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+            <input type="password" name="new_password1" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
 
-<!-- ===================================================== -->
-<!-- CHANGE PASSWORD -->
-<!-- ===================================================== -->
-<h3>Change Password</h3>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+            <input type="password" name="new_password2" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+        </div>
 
-<form method="post">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="change_password">
+        <button type="submit"
+          class="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+          Update Password
+        </button>
+      </form>
+    </div>
+  </section>
 
-    <div class="field">
-        <label>Current Password</label>
-        <input type="password" name="current_password" required>
+  <!-- ===================================================== -->
+  <!-- PROFILE IMAGE -->
+  <!-- ===================================================== -->
+  <section class="space-y-4">
+    <div>
+      <h2 class="text-lg font-semibold">Profile Image</h2>
+      <p class="text-sm text-slate-600">Upload a JPG or PNG.</p>
     </div>
 
-    <div class="field">
-        <label>New Password</label>
-        <input type="password" name="new_password1" required>
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center">
+          {% if user_obj.profile_image %}
+            <img src="{{ user_obj.profile_image.url }}" alt="Profile image"
+              class="w-full h-full object-cover">
+          {% else %}
+            <span class="text-xs text-slate-500">No image</span>
+          {% endif %}
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="flex-1 space-y-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="upload_image">
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Upload Image</label>
+            <input type="file" name="profile_image" accept="image/jpeg,image/png"
+              class="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4
+                     file:rounded-xl file:border-0 file:text-sm file:font-medium
+                     file:bg-slate-900 file:text-white hover:file:bg-slate-800">
+          </div>
+
+          <button type="submit"
+            class="rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Upload Image
+          </button>
+        </form>
+      </div>
     </div>
+  </section>
 
-    <div class="field">
-        <label>Confirm New Password</label>
-        <input type="password" name="new_password2" required>
-    </div>
+  <!-- ===================================================== -->
+  <!-- DOB AUTO-FORMAT SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const dobInput = document.getElementById("dob_input");
+      if (!dobInput) return;
 
-    <button type="submit" class="button button-outline">
-        Update Password
-    </button>
-</form>
+      dobInput.addEventListener("blur", function () {
+          let v = dobInput.value.trim();
+          if (!v) return;
 
-<hr style="margin:1.5rem 0;">
+          const digits = v.replace(/\D/g, '');
+          if (digits.length === 8) {
+              const mm = digits.slice(0,2);
+              const dd = digits.slice(2,4);
+              const yyyy = digits.slice(4);
 
-
-<!-- ===================================================== -->
-<!-- PROFILE IMAGE -->
-<!-- ===================================================== -->
-<h3>Profile Image</h3>
-
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="upload_image">
-
-    <div class="field">
-        <label>Upload Image (JPG / PNG)</label>
-        <input type="file" name="profile_image" accept="image/jpeg,image/png">
-    </div>
-
-    <button type="submit" class="button button-outline">Upload Image</button>
-</form>
-
-{% if user_obj.profile_image %}
-    <p style="margin-top:1rem;">Current image:</p>
-    <img src="{{ user_obj.profile_image.url }}"
-         alt="Profile image"
-         style="width:80px;height:80px;border-radius:999px;object-fit:cover;">
-{% endif %}
-
-<!-- ===================================================== -->
-<!-- DOB AUTO-FORMAT SCRIPT -->
-<!-- ===================================================== -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const dobInput = document.getElementById("dob_input");
-    if (!dobInput) return;
-
-    dobInput.addEventListener("blur", function () {
-        let v = dobInput.value.trim();
-        if (!v) return;
-
-        const digits = v.replace(/\D/g, '');
-        if (digits.length === 8) {
-            const mm = digits.slice(0,2);
-            const dd = digits.slice(2,4);
-            const yyyy = digits.slice(4);
-
-            if (parseInt(mm) >= 1 && parseInt(mm) <= 12 &&
-                parseInt(dd) >= 1 && parseInt(dd) <= 31) {
-                dobInput.value = `${mm}/${dd}/${yyyy}`;
-            }
-        }
-    });
-});
-</script>
-
+              if (parseInt(mm) >= 1 && parseInt(mm) <= 12 &&
+                  parseInt(dd) >= 1 && parseInt(dd) <= 31) {
+                  dobInput.value = `${mm}/${dd}/${yyyy}`;
+              }
+          }
+      });
+  });
+  </script>
+</div>
 {% endblock %}

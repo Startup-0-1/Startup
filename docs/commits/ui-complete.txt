@@ -1,0 +1,56 @@
+Version: v0.1.0-ui-complete
+Date: 12/17/2025
+Scope: UI Architecture + Local Development Stabilization
+
+Summary:
+Completed a full UI refactor and finalized a deterministic local development
+workflow. This milestone establishes a clean visual system, consistent layout
+architecture, and a reliable Docker-backed environment. The project is now
+ready to move from presentation-layer work to core domain hardening.
+
+Major Changes:
+- Migrated all templates to Tailwind-based layouts
+- Introduced standardized layout structure:
+  - ui/layout_public.html (public + auth)
+  - ui/layout_app.html (authenticated app)
+- Removed legacy core/base.html usage across all templates
+- Restyled all core user, doctor, appointment, payment, and settings pages
+- Unified UI components (forms, tables, status pages)
+- Fixed template inheritance and block structure issues
+- Ensured consistent navigation and URL resolution across roles
+
+Infrastructure & Tooling:
+- Dockerized Postgres and Redis for local development
+- Resolved port conflicts via explicit host/container mapping
+- Integrated django-environ for environment-based configuration
+- Verified Tailwind build pipeline and static asset resolution
+
+Documentation:
+- Updated README.md with an authoritative, step-by-step run guide
+- Documented first-time setup vs daily development workflows
+- Clarified project status and next development phase
+
+Verification Checklist:
+- All pages load without template errors
+- No templates extend legacy base.html
+- Tailwind styles compile and hot-reload correctly
+- Django connects successfully to Dockerized Postgres
+- Patient and doctor flows render correctly end-to-end
+- Payment success and cancel pages render as expected
+
+Known Tradeoffs:
+- Welcome page currently uses public layout shell for authenticated users
+  (intentional simplification; can be upgraded to a shell layout later)
+- Admin UI remains Django Admin (custom admin UI deferred)
+
+Next Phase:
+Step 3A — Scheduling Hardening
+- Prevent double booking
+- Enforce timezone-safe scheduling
+- Add database-level constraints
+- Prepare scheduling layer for external provider integrations (e.g., NHS)
+
+Notes:
+This commit represents a structural milestone. No feature development should
+proceed until this state is stable. Future commits should build on this
+baseline rather than modify it retroactively.

@@ -1,90 +1,107 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_public.html" %}
+
+{% block title %}Welcome — MedConsult{% endblock %}
 
 {% block content %}
+<div class="space-y-8">
 
-{% if request.user.is_authenticated %}
-    {% if request.user.role == "patient" %}
-        <h1>Welcome, {{ request.user.get_display_name }}</h1>
-    {% elif request.user.role == "doctor" %}
-        <h1>Welcome, Dr. {{ request.user.get_display_name }}</h1>
-    {% endif %}
-    <p style="margin-top:0.4rem; color:#4b5563;">
-        You are logged in as <strong>{{ request.user.role }}</strong>.
-    </p>
-
-    {% if request.user.role == "patient" %}
-        <div class="dashboard-grid">
-            <div class="dashboard-card">
-                <h3>My Appointments</h3>
-                <p>View all your upcoming and past consultations.</p>
-                <a href="{% url 'patient-appointments' %}" class="button button-primary">
-                    View Appointments
-                </a>
-            </div>
-            <div class="dashboard-card">
-                <h3>Request Appointment</h3>
-                <p>Schedule a new consultation with a doctor.</p>
-                <a href="{% url 'patient-appointment-create' %}" class="button button-outline">
-                    Request Appointment
-                </a>
-            </div>
-            <div class="dashboard-card">
-                <h3>Payments</h3>
-                <p>Pay your consultation fee securely.</p>
-                <a href="{% url 'payment-page' %}" class="button button-outline">
-                    Go to Payments
-                </a>
-            </div>
-        </div>
-
-    {% elif request.user.role == "doctor" %}
-        <div class="dashboard-grid">
-            <div class="dashboard-card">
-                <h3>My Patients' Appointments</h3>
-                <p>Review your upcoming and recent consultations.</p>
-                <a href="{% url 'doctor-appointments' %}" class="button button-primary">
-                    View Appointments
-                </a>
-            </div>
-            <div class="dashboard-card">
-                <h3>Admin Area</h3>
-                <p>Access detailed records and user management (if enabled).</p>
-                <a href="/admin/" class="button button-outline">
-                    Django Admin
-                </a>
-            </div>
-        </div>
-
-    {% elif request.user.role == "admin" %}
-        <div class="dashboard-grid">
-            <div class="dashboard-card">
-                <h3>System Admin</h3>
-                <p>Manage users, appointments, documents, and payments.</p>
-                <a href="/admin/" class="button button-primary">
-                    Open Admin
-                </a>
-            </div>
-        </div>
-    {% endif %}
-
-{% else %}
-    <h1>Welcome to MedConsult</h1>
-    <p>
-        Secure medical consultancy platform with separate access for
-        <strong>patients</strong>, <strong>doctors</strong>, and <strong>admins</strong>.
-    </p>
-
-    <div style="margin-top:1.5rem;">
-        <a class="button button-primary" href="{% url 'login-page' %}">
-            Log In
-        </a>
-        <a class="button button-outline" href="{% url 'signup-patient-page' %}" style="margin-left:0.75rem;">
-            I'm a Patient
-        </a>
-        <a class="button button-outline" href="{% url 'signup-doctor-page' %}" style="margin-left:0.75rem;">
-            I'm a Doctor
-        </a>
+  {% if request.user.is_authenticated %}
+    <div>
+      {% if request.user.role == "patient" %}
+        <h1 class="text-2xl font-semibold tracking-tight">
+          Welcome, {{ request.user.get_display_name }}
+        </h1>
+      {% elif request.user.role == "doctor" %}
+        <h1 class="text-2xl font-semibold tracking-tight">
+          Welcome, Dr. {{ request.user.get_display_name }}
+        </h1>
+      {% else %}
+        <h1 class="text-2xl font-semibold tracking-tight">
+          Welcome, {{ request.user.get_display_name }}
+        </h1>
+      {% endif %}
+      <p class="text-sm text-slate-600 mt-1">
+        You’re logged in as <span class="font-medium">{{ request.user.role }}</span>.
+      </p>
     </div>
-{% endif %}
 
+    {% if request.user.role == "patient" %}
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-3">
+          <h3 class="text-lg font-semibold">My Appointments</h3>
+          <p class="text-sm text-slate-600">View upcoming and past consultations.</p>
+          <a href="{% url 'patient-appointments' %}"
+             class="inline-flex items-center justify-center rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 transition">
+            View appointments
+          </a>
+        </div>
+
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-3">
+          <h3 class="text-lg font-semibold">Request Appointment</h3>
+          <p class="text-sm text-slate-600">Schedule a new consultation.</p>
+          <a href="{% url 'patient-appointment-create' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Request appointment
+          </a>
+        </div>
+
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-3">
+          <h3 class="text-lg font-semibold">Payments</h3>
+          <p class="text-sm text-slate-600">Pay consultation fees securely.</p>
+          <a href="{% url 'payment-page' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Go to payments
+          </a>
+        </div>
+      </div>
+
+    {% elif request.user.role == "doctor" %}
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-3">
+          <h3 class="text-lg font-semibold">My Appointments</h3>
+          <p class="text-sm text-slate-600">Review upcoming and recent consultations.</p>
+          <a href="{% url 'doctor-appointments' %}"
+             class="inline-flex items-center justify-center rounded-xl bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800 transition">
+            View appointments
+          </a>
+        </div>
+
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-3">
+          <h3 class="text-lg font-semibold">Admin Area</h3>
+          <p class="text-sm text-slate-600">Access advanced system controls.</p>
+          <a href="/admin/"
+             class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition">
+            Django admin
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="max-w-2xl space-y-6">
+      <div>
+        <h1 class="text-3xl font-semibold tracking-tight">Welcome to MedConsult</h1>
+        <p class="text-slate-600 mt-2">
+          A secure medical consultation platform for patients and doctors —
+          simple scheduling, clear communication, and reliable care.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <a href="{% url 'login-page' %}"
+           class="inline-flex items-center justify-center rounded-xl bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Log in
+        </a>
+        <a href="{% url 'signup-patient-page' %}"
+           class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+          I’m a patient
+        </a>
+        <a href="{% url 'signup-doctor-page' %}"
+           class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium hover:bg-slate-50 transition">
+          I’m a doctor
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}

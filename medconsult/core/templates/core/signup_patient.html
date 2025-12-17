@@ -1,104 +1,131 @@
-{% extends "core/base.html" %}
+{% extends "ui/layout_public.html" %}
 {% load tz %}
 
+{% block title %}Patient Sign Up — MedConsult{% endblock %}
+
 {% block content %}
-<h2>Patient Sign Up</h2>
-<p>Create your patient account.</p>
+<div class="max-w-2xl mx-auto">
+  <div class="rounded-2xl bg-white border border-slate-200 shadow-sm">
+    <div class="p-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Patient Sign Up</h1>
+      <p class="text-sm text-slate-600 mt-1">Create your patient account.</p>
 
-<form method="post" style="margin-top:1rem;">
-    {% csrf_token %}
+      <form method="post" class="mt-6 space-y-6">
+        {% csrf_token %}
 
-    <div class="field">
-        <label>Email</label>
-        <input type="email" name="email" required>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+            <input type="email" name="email" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+            <input type="text" name="full_name" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" name="password" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+            <input type="password" name="password_confirm" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+          </div>
+        </div>
+
+        <div class="border-t pt-6">
+          <h2 class="text-sm font-semibold text-slate-900">Personal details</h2>
+
+          <div class="grid md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Date of Birth (MM/DD/YYYY)</label>
+              <input type="text" name="date_of_birth" id="dob_input" placeholder="06/27/1992" required
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+              <p class="text-xs text-slate-500 mt-1">
+                Tip: type <span class="font-mono">06271992</span> and it auto-formats to <span class="font-mono">06/27/1992</span>.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Gender</label>
+              <input type="text" name="gender" required
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
+              <input type="text" name="contact_number" required
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+              <textarea name="address" rows="2" required
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t pt-6">
+          <h2 class="text-sm font-semibold text-slate-900">Optional details</h2>
+
+          <div class="grid md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Emergency Contact (optional)</label>
+              <input type="text" name="emergency_contact"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Insurance Provider (optional)</label>
+              <input type="text" name="insurance_provider"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-slate-700 mb-1">Insurance Policy Number (optional)</label>
+              <input type="text" name="insurance_policy_number"
+                class="w-full rounded-xl border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-300">
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t pt-6">
+          <h2 class="text-sm font-semibold text-slate-900">Timezone</h2>
+
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Your Timezone</label>
+            <select name="timezone" required
+              class="w-full rounded-xl border border-slate-200 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300">
+              <option value="">-- Select your timezone --</option>
+              {% for tz_name in timezones %}
+                <option value="{{ tz_name }}">{{ tz_name }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-slate-500 mt-1">
+              This ensures doctor availability shows in <strong>your local time</strong>.
+            </p>
+          </div>
+        </div>
+
+        <button type="submit"
+          class="w-full rounded-xl bg-slate-900 text-white py-2 text-sm font-medium hover:bg-slate-800 transition">
+          Create Patient Account
+        </button>
+
+        <p class="text-sm text-slate-600 text-center">
+          Already have an account? <a class="underline" href="{% url 'login-page' %}">Log in</a>
+        </p>
+      </form>
     </div>
-
-    <div class="field">
-        <label>Password</label>
-        <input type="password" name="password" required>
-    </div>
-
-    <div class="field">
-        <label>Confirm Password</label>
-        <input type="password" name="password_confirm" required>
-    </div>
-
-    <div class="field">
-        <label>Full Name</label>
-        <input type="text" name="full_name" required>
-    </div>
-
-    <div class="field">
-        <label>Date of Birth (MM/DD/YYYY)</label>
-        <input type="text" name="date_of_birth" id="dob_input" placeholder="06/27/1992" required>
-        <small style="font-size:0.8rem; color:#6b7280;">
-            You can also type <strong>06271992</strong> and it will auto-format to <strong>06/27/1992</strong>.
-        </small>
-    </div>
-
-    <div class="field">
-        <label>Gender</label>
-        <input type="text" name="gender" required>
-    </div>
-
-    <div class="field">
-        <label>Contact Number</label>
-        <input type="text" name="contact_number" required>
-    </div>
-
-    <div class="field">
-        <label>Address</label>
-        <textarea name="address" rows="2" required></textarea>
-    </div>
-
-    <div class="field">
-        <label>Emergency Contact (optional)</label>
-        <input type="text" name="emergency_contact">
-    </div>
-
-    <div class="field">
-        <label>Insurance Provider (optional)</label>
-        <input type="text" name="insurance_provider">
-    </div>
-
-    <div class="field">
-        <label>Insurance Policy Number (optional)</label>
-        <input type="text" name="insurance_policy_number">
-    </div>
-
-    {# ====================================== #}
-    {# USER TIMEZONE SELECTION (RECOMMENDED) #}
-    {# ====================================== #}
-
-    <div class="field">
-        <label>Your Timezone</label>
-        <select name="timezone" required>
-            <option value="">-- Select your timezone --</option>
-            {% for tz_name in timezones %}
-                <option value="{{ tz_name }}">
-                    {{ tz_name }}
-                </option>
-            {% endfor %}
-        </select>
-        <small style="font-size:0.8rem; color:#6b7280;">
-            This ensures doctor availability shows in <strong>your local time</strong>.
-        </small>
-    </div>
-    <div class="field">
-        <label>Time Zone</label>
-        <select name="timezone" required>
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">US Eastern (New York)</option>
-            <option value="Europe/London">UK (London)</option>
-            <option value="Asia/Kolkata">India Standard Time (IST)</option>
-        </select>
-        <small style="font-size:0.8rem; color:#6b7280;">
-            This controls how your appointments and schedules are shown to you.
-        </small>
-    </div>
-    <button type="submit" class="button button-primary">Create Patient Account</button>
-</form>
-
+  </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -109,16 +136,12 @@ document.addEventListener('DOMContentLoaded', function () {
         let v = dobInput.value.trim();
         if (!v) return;
 
-        // Remove non-digits
         const digits = v.replace(/\D/g, '');
-
-        // Auto-format MMDDYYYY → MM/DD/YYYY
         if (digits.length === 8) {
             const mm = digits.slice(0, 2);
             const dd = digits.slice(2, 4);
             const yyyy = digits.slice(4);
 
-            // Light validation: prevent impossible months/days
             if (parseInt(mm) >= 1 && parseInt(mm) <= 12 &&
                 parseInt(dd) >= 1 && parseInt(dd) <= 31) {
                 dobInput.value = `${mm}/${dd}/${yyyy}`;
@@ -127,5 +150,4 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
 {% endblock %}

@@ -1,0 +1,5 @@
+<div class="rounded-2xl bg-white border border-slate-200 shadow-sm p-8 text-center">
+  <h3 class="text-lg font-semibold">{{ title }}</h3>
+  {% if subtitle %}<p class="text-sm text-slate-600 mt-2">{{ subtitle }}</p>{% endif %}
+  {% if cta_html %}<div class="mt-4">{{ cta_html|safe }}</div>{% endif %}
+</div>
