@@ -1,332 +1,376 @@
-# Guide.md
+# Guide.md — MedConsult Path A (Django + Tailwind + HTMX) with a Path B Exit Ramp
 
-## Goal
+**Goal (60 days):** a clean, modern, fully working platform (Doctor/Patient/Admin) that’s fast, secure-by-design, and already structured to evolve into **Path B** (DRF API + Next.js) without a rewrite.
 
-In the next **60 days**, ship a **fully working MedConsult platform** using **Path A** (Django templates + Tailwind + HTMX) with a clean **exit ramp to Path B** (API-first / DRF + future Next.js) and a future-ready structure for **NHS-style integrations** and security requirements.
+**Non‑negotiables (we keep these because they help later):**
 
-This guide is written to be followed **one step at a time**. Each step ends with a **Definition of Done** so you can confirm progress without vibes.
-
----
-
-## North Star Deliverable (Day 60)
-
-A production-ready MVP with:
-
-* Role-based access (Admin / Doctor / Patient)
-* Doctor onboarding + verification workflow
-* Doctor search + filters + availability calendar
-* Appointment booking + reschedule/cancel + conflict-free scheduling
-* Payments (Stripe) with webhooks, refunds/cancellations policy hooks
-* Documents (upload, access control, audit trail)
-* Prescriptions (structured, downloadable, tied to appointment)
-* Dashboards for each role
-* Email notifications (appointment status, receipts, verification)
-* Security baseline (CSRF, sessions, permissions, audit logging, secrets management)
-* Observability (logging + error tracking) and deployment hygiene
-
-**Exit ramp built-in:** service layer + JSON endpoints for key workflows so adding DRF + Next.js later is additive, not a rewrite.
+* **Service layer** (business logic outside views)
+* **API-ready boundaries** (HTML + JSON from same core functions)
+* **Postgres** (prod data), **S3-compatible storage** for media
+* **Background jobs** (email/SMS, Stripe webhooks, reminders)
+* **Audit logging** (who did what, when)
+* **Role-based permissions** (Doctor/Patient/Admin, plus verified/unverified)
+* **Test baseline + CI** (so refactors don’t break the app)
 
 ---
 
-## Core Principles (so we don’t paint ourselves into a corner)
+## 0) North Star Architecture
 
-1. **Thin views, fat services.** Views only parse input and return responses. Business logic lives in `services/`.
-2. **State machines over spaghetti.** Appointments/Payments/Verification are explicit states.
-3. **HTMX for interaction, not for chaos.** HTMX endpoints return partials; core actions still call services.
-4. **Integration boundaries.** Any external system (NHS-like, insurance, SMS, email, Stripe) lives behind an `integrations/` interface.
-5. **Data minimization.** Store only what you need; keep a clean audit trail.
+### Path A now
 
----
+* Django (monolith)
+* Server-rendered templates
+* Tailwind CSS for styling
+* HTMX for interactive UI without SPA
+* Alpine.js only for tiny interactions (modals/tabs)
 
-## Project Structure Target (end-state)
+### Exit ramp to Path B later
 
-Create these folders/apps (incrementally):
+* Add DRF endpoints gradually
+* Keep the same service layer + serializers
+* Next.js consumes DRF when you’re ready
 
-* `core/` (existing): core models, auth, base templates
-* `appointments/` (new or refactor): booking/reschedule/cancel, slot logic
-* `payments/` (new or refactor): Stripe checkout + webhooks + Payment state machine
-* `documents/` (new or refactor): uploads + access + audit
-* `prescriptions/` (new or refactor): RX generation + templates
-* `dashboards/` (new): role dashboards
-* `integrations/` (new):
-
-  * `integrations/stripe/`
-  * `integrations/email/`
-  * `integrations/nhs/` (placeholder interface now)
-* `services/` (new, project-level or per-app): business logic
-* `ui/` (new, optional): template components + HTMX partials
-
-If you don’t want new Django apps yet, we can still create `services/` and `integrations/` immediately and migrate logic gradually.
+**Core principle:** UI can change. API can grow. **Models + services stay stable.**
 
 ---
 
-## 60-Day Plan (Step-by-step, one-by-one)
+## 1) Project Re-Org (do this first)
 
-### Step 1 (Days 1–3): Baseline + Repo Hygiene
+### 1.1 Create these Django apps (if not already)
 
-**Objective:** Make the project safe to iterate on quickly.
+* `accounts/` (auth, user, profiles, verification states)
+* `scheduling/` (availability, slots, appointments)
+* `billing/` (Stripe, payments, invoices, refunds)
+* `records/` (documents, prescriptions, visit notes)
+* `integrations/` (future NHS and other providers)
+* `audit/` (audit log entries)
+* `ui/` (template components + static assets)
 
-Tasks:
+**Rule:** Views should be thin. Business rules live in `services.py` inside each app.
 
-* Add/confirm `.env` usage for secrets (SECRET_KEY, STRIPE keys, email creds)
-* Split settings: `settings/base.py`, `settings/dev.py`, `settings/prod.py`
-* Update `.gitignore` to exclude `db.sqlite3`, `media/`, `__pycache__`, local env files
-* Add `pre-commit` hooks (format + lint) (optional but recommended)
-* Add a “Project Health” management command (`python manage.py check --deploy` for prod)
+### 1.2 Add a service layer pattern
 
-Definition of Done:
+For every app:
 
-* App runs in dev with `.env`.
-* Secrets are not hardcoded.
-* `db.sqlite3` and `media/` are no longer required to be committed.
+* `services.py` (pure business actions)
+* `selectors.py` (read-only queries)
+* `validators.py` (shared validation)
+* `api.py` (future DRF endpoints or shared serializers)
 
----
+Example actions:
 
-### Step 2 (Days 4–7): UI Foundation (Tailwind + Component Templates)
+* `scheduling.services.book_appointment(...)`
+* `billing.services.create_checkout_session(...)`
+* `accounts.services.verify_doctor(...)`
 
-**Objective:** Make the UI consistent and modern without rewriting logic.
+### 1.3 Settings split
 
-Tasks:
+Create:
 
-* Install Tailwind (Django-friendly build approach)
-* Create a base design system:
+* `settings/base.py`
+* `settings/dev.py`
+* `settings/prod.py`
 
-  * typography scale
-  * spacing rules
-  * buttons, inputs, cards, badges
-* Create template components:
-
-  * `components/button.html`
-  * `components/input.html`
-  * `components/card.html`
-  * `components/badge.html`
-  * `components/modal.html`
-* Rebuild base layout:
-
-  * top nav + role-aware sidebar for authenticated pages
-  * clean public layout for marketing/login
-
-Definition of Done:
-
-* 5–8 reusable components exist.
-* Core pages inherit from a single clean base.
+Move secrets to environment variables.
 
 ---
 
-### Step 3 (Days 8–12): Service Layer + Permissions Cleanup
+## 2) UI/UX Redesign (Path A, but professional)
 
-**Objective:** Create the exit ramp to Path B.
+### 2.1 Design system
 
-Tasks:
+* Tailwind (base)
+* Component library approach (your own components)
 
-* Introduce `services/` (or per-app services) and move business logic out of views
-* Define permission helpers (role checks, object ownership)
-* Add consistent error handling and messages
+Create reusable template components in `ui/templates/ui/components/`:
 
-Definition of Done:
+* `button.html` (primary/secondary/danger)
+* `input.html` (with errors)
+* `card.html`
+* `badge.html` (appointment/payment statuses)
+* `modal.html`
+* `table.html`
+* `empty_state.html`
+* `toast.html`
 
-* At least 3 key workflows use services:
+**Rule:** No page-specific CSS. Everything is components + Tailwind utilities.
 
-  * book appointment
-  * approve/reject
-  * upload document
+### 2.2 Layouts
 
----
+Create base layouts:
 
-### Step 4 (Days 13–18): Scheduling That Doesn’t Lie (Conflict-Free)
+* `ui/templates/ui/layout_public.html`
+* `ui/templates/ui/layout_app.html` (dashboard layout with sidebar)
 
-**Objective:** No double booking, consistent slots, timezone correctness.
+### 2.3 UX flows (mandatory)
 
-Tasks:
+* Patient: signup → complete profile → find doctor → pick slot → pay (if required) → confirmed → docs/prescriptions
+* Doctor: signup → submit verification → set availability → manage appointments → upload docs/prescriptions
+* Admin: verify doctors → manage disputes → oversee payments → audit logs
 
-* Normalize timezone handling (doctor timezone vs patient timezone)
-* Implement slot generation service
-* Implement booking with conflict protection:
+### 2.4 HTMX interaction plan
 
-  * DB constraints where possible
-  * transaction-based locking strategy
-* Add reschedule rules and cancellation policy hooks
+Use HTMX for:
 
-Definition of Done:
+* Live doctor search filters + pagination
+* Slot availability fetch + booking without page reload
+* Appointment approve/reject/reschedule actions
+* Upload documents and refresh list
+* Admin verify/reject doctor without full page refresh
 
-* Two users cannot book the same slot.
-* Reschedule/cancel works and is consistent.
+Alpine.js only for:
 
----
-
-### Step 5 (Days 19–24): Doctor Verification Workflow (Trust Layer)
-
-**Objective:** Introduce verification states + admin review.
-
-Tasks:
-
-* Add `DoctorVerification` model (or fields) with states:
-
-  * PENDING, VERIFIED, REJECTED
-* Admin verification queue UI
-* Gate discovery + booking behind VERIFIED
-* Store minimal verification metadata
-* Add audit log entries
-
-Definition of Done:
-
-* Unverified doctors cannot appear in search or accept appointments.
-* Admin can approve/reject with notes.
+* modal open/close
+* tabs (profile sections)
+* dropdown menus
 
 ---
 
-### Step 6 (Days 25–31): Search + Filters + Discovery UX
+## 3) Data + Performance Foundations
 
-**Objective:** A “real product” search experience.
+### 3.1 Database
 
-Tasks:
+* Dev: SQLite is fine
+* Prod: Postgres (required)
 
-* Add filters: specialization, availability date, rating placeholder, location (if available)
-* Pagination + sorting
-* HTMX-powered filter updates
+Add indexes:
 
-Definition of Done:
+* Appointments: `(doctor_id, start_time)`, `(patient_id, start_time)`, `status`
+* Availability: `(doctor_id, day_of_week)` and/or `(doctor_id, start_time)`
 
-* Search feels fast, modern, and useful.
+### 3.2 Media storage
 
----
+* Dev: local `MEDIA_ROOT`
+* Prod: S3-compatible (AWS S3, DigitalOcean Spaces, etc.)
 
-### Step 7 (Days 32–38): Payments That Close the Loop (Stripe Webhooks)
+### 3.3 Caching
 
-**Objective:** Payments become the source of truth, not vibes.
-
-Tasks:
-
-* Checkout session flow
-* Webhooks for:
-
-  * payment succeeded/failed
-  * refunds
-* Payment → Appointment coupling (paid = confirmed)
-* Receipts/invoices basics
-
-Definition of Done:
-
-* Webhooks update Payment/Appointment status.
-* You can trace one payment end-to-end.
+* Redis (for sessions and caching slot computations)
 
 ---
 
-### Step 8 (Days 39–45): Documents + Prescriptions + Access Control
+## 4) Security & Compliance Foundations
 
-**Objective:** Add real clinical artifact handling with permissions and audit.
+### 4.1 Authentication
 
-Tasks:
+* Keep Django auth (Path A)
+* Add **2FA optional** later (recommended)
 
-* Documents:
+### 4.2 Authorization
 
-  * upload, list, download
-  * role-based access
-  * audit logging
-* Prescriptions:
+Implement explicit permission checks:
 
-  * structured fields
-  * generate PDF/printable
-  * tied to appointment
+* role-based (patient/doctor/admin)
+* object-based (can only view your own appointment, docs)
+* verification-based (unverified doctors cannot appear in search or accept appointments)
 
-Definition of Done:
+### 4.3 Audit logging (non-negotiable)
 
-* Only authorized users can access documents.
-* Prescription creation works and is downloadable.
+Log events:
 
----
+* doctor verification actions
+* appointment status changes
+* prescription creation/edit
+* payment events
 
-### Step 9 (Days 46–52): Dashboards + Notifications
+### 4.4 Security headers
 
-**Objective:** Make it feel like a complete platform.
-
-Tasks:
-
-* Role dashboards:
-
-  * Patient: upcoming, past, docs, payments
-  * Doctor: schedule, pending approvals, patient list
-  * Admin: verification queue, platform metrics
-* Email notifications (integration boundary):
-
-  * appointment booked/approved/cancelled
-  * verification approved/rejected
-  * payment receipt
-
-Definition of Done:
-
-* Each role has a useful “home.”
-* Emails send reliably in dev and can be configured for prod.
+* CSRF, secure cookies
+* HSTS, CSP (production)
+* strict session settings
 
 ---
 
-### Step 10 (Days 53–60): Security + Deployment Readiness + Exit Ramp
+## 5) Feature Upgrades (what you’ll add beyond current MVP)
 
-**Objective:** Production baseline and future NHS integration readiness.
+### 5.1 Doctor verification workflow (Admin)
 
-Tasks:
+States:
 
-* Security baseline:
+* `PENDING` → `VERIFIED` / `REJECTED`
 
-  * enforce CSRF
-  * secure cookies
-  * rate limiting for auth endpoints
-  * audit logs (who did what, when)
-* Observability:
+Admin tools:
 
-  * structured logging
-  * error tracking integration (optional)
-* Deployment:
+* verify/reject + notes
+* timeline of changes
 
-  * switch to Postgres for prod
-  * static/media strategy
-  * gunicorn + reverse proxy guidance
-* Exit ramp:
+### 5.2 Scheduling hardening (no double booking)
 
-  * add JSON endpoints for key workflows
-  * document API contracts
-* Integration readiness:
+* Slot generation must consider existing appointments
+* Booking must be **transactional** (atomic)
+* Use DB constraints where possible
 
-  * create `integrations/nhs/` interface + placeholder service methods
-  * ensure verification pipeline can accept external provider states
+### 5.3 Payments (Stripe) completed properly
 
-Definition of Done:
+* Checkout session creation
+* Stripe **webhooks** (source of truth)
+* Payment ↔ appointment state machine
+* Refund flow
 
-* `python manage.py check --deploy` passes with sane settings.
-* Clear separation exists between product logic and integrations.
-* Key workflows have both HTML and JSON pathways.
+### 5.4 Communications
 
----
+* Email notifications (booking confirmed, rescheduled, cancelled)
+* Optional SMS later
 
-## NHS Integration “No Hassle” Plan (We prepare now)
+### 5.5 Records
 
-We’ll make NHS-like integration easy by designing verification and identity as **pluggable providers**.
-
-### Provider Interface (concept)
-
-* `verify_doctor(provider, payload) -> VerificationResult`
-* `link_identity(provider, oidc_sub, user) -> None`
-* `sync_insurance(provider, patient) -> InsuranceProfile`
-
-Your DoctorVerification state machine will support:
-
-* manual admin verification (now)
-* external identity verification (later)
-
-Definition of Done (today):
-
-* Verification is provider-driven, not hardcoded.
+* Visit notes
+* Document categories + permissions
+* Prescription lifecycle
 
 ---
 
-## How We Will Work “One by One”
+## 6) NHS Integration Readiness (future-proof now)
 
-You will say: **“Start Step X”**.
-I will:
+### 6.1 Keep integrations isolated
 
-1. identify exact files to change
-2. provide the code edits (or patch-style changes)
-3. give a quick run/test checklist
-4. confirm the Definition of Done for that step
+All external provider logic goes into:
 
+* `integrations/nhs/`
+
+No direct NHS calls inside views.
+
+### 6.2 Identity strategy
+
+Prepare for OIDC providers:
+
+* `integrations.oidc` helpers
+* token storage + refresh patterns
+
+### 6.3 Data minimization
+
+Store:
+
+* provider subject ID
+* verification result
+* timestamps
+
+Avoid storing unnecessary identity data.
+
+### 6.4 Auditability
+
+Every external verification action writes to `audit/`.
+
+---
+
+## 7) Testing + Quality Gates
+
+Minimum test suite:
+
+* model tests (appointment constraints)
+* service tests (book/reschedule/cancel)
+* billing tests (webhook handling)
+
+Add CI:
+
+* run tests
+* lint (ruff/black)
+
+---
+
+## 8) Deployment (so you can actually run this)
+
+* Dockerize (app + Postgres + Redis)
+* Gunicorn + Nginx
+* Static files: collectstatic
+* Media: S3
+* Secrets: env vars
+
+Observability:
+
+* structured logging
+* error tracking (Sentry recommended)
+
+---
+
+# 60-Day Step-by-Step Plan
+
+## Week 1 (Days 1–7): Foundations + UI system
+
+1. Create settings split (base/dev/prod)
+2. Add Postgres locally (docker compose)
+3. Add Tailwind build pipeline
+4. Create UI component templates + base layouts
+5. Move business logic out of views into services/selectors
+
+**Deliverable:** App still works, UI skeleton + clean structure.
+
+## Week 2 (Days 8–14): Roles, permissions, dashboards
+
+1. Enforce role-based access checks everywhere
+2. Build dashboards:
+
+   * Patient dashboard
+   * Doctor dashboard
+   * Admin dashboard
+3. Add audit logging model + middleware/hooks
+
+**Deliverable:** Role-based UX feels real.
+
+## Week 3 (Days 15–21): Scheduling v2 (reliable)
+
+1. Implement transactional booking
+2. Prevent double-booking
+3. HTMX slot picker
+4. Reschedule/cancel rules
+
+**Deliverable:** Scheduling you can trust.
+
+## Week 4 (Days 22–28): Doctor verification + Admin controls
+
+1. Verification workflow + UI
+2. Admin verification queue + filters
+3. Block unverified doctors from being searchable/bookable
+
+**Deliverable:** Trust layer implemented.
+
+## Week 5 (Days 29–35): Payments completed
+
+1. Stripe checkout cleaned up
+2. Add Stripe webhooks
+3. Appointment/payment state machine
+4. Refund handling (basic)
+
+**Deliverable:** Payments are real, not vibes.
+
+## Week 6 (Days 36–42): Records + documents + prescriptions polish
+
+1. Document categories + permissions
+2. Prescriptions lifecycle
+3. Add visit notes
+4. Improve UI for records (cards, filters)
+
+**Deliverable:** Clinical artifacts usable.
+
+## Week 7 (Days 43–49): Notifications + background jobs
+
+1. Add Redis + background worker (Celery or RQ)
+2. Email notifications for key events
+3. Appointment reminders
+
+**Deliverable:** Platform starts acting like a platform.
+
+## Week 8–9 (Days 50–60): API exit ramp + deployment hardening
+
+1. Add DRF incrementally:
+
+   * `/api/me/`
+   * `/api/doctors/`
+   * `/api/appointments/`
+2. Ensure HTML and API share services/selectors
+3. Docker + production checklist
+4. Basic test coverage + CI
+
+**Deliverable:** You can run it reliably and you’ve started Path B without rewriting.
+
+---
+
+# Execution Rules (so we don’t drown)
+
+1. We do **one step at a time**.
+2. Every step ends with a **working app**.
+3. No feature gets implemented twice.
+4. If it helps the exit ramp or improves UX/performance/security, it stays.
+
+---
 
