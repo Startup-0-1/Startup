@@ -212,3 +212,4 @@ startup_venv/
 startENV/
 venv/
 .env/
+docs/commits/
